@@ -101,6 +101,9 @@ async function clearAppCache({ includeArticles }) {
       .filter((key) => key.startsWith(STORAGE_PREFIX))
       .filter((key) => includeArticles || key !== ARTICLE_KEY)
       .forEach((key) => localStorage.removeItem(key));
+    if (includeArticles) {
+      localStorage.setItem(ARTICLE_KEY, JSON.stringify([]));
+    }
   } catch {
     // Manche iOS-Privatmodi blockieren Speicherzugriff.
   }
@@ -439,9 +442,6 @@ function setupListsPage() {
     lists.forEach((list) => {
       const card = document.createElement("article");
       card.className = "list-card";
-      card.tabIndex = 0;
-      card.setAttribute("role", "button");
-      card.setAttribute("aria-label", `${t("show")}: ${list.title}`);
 
       const header = document.createElement("div");
       header.className = "list-card-header";
@@ -483,13 +483,6 @@ function setupListsPage() {
           return;
         }
         toggleDetails();
-      });
-
-      card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          toggleDetails();
-        }
       });
 
       showButton.addEventListener("click", (event) => {

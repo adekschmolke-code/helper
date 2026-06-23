@@ -3,20 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Helper hilft dir, Artikel lokal zu verwalten und daraus schnell Listen mit Mengen zu erstellen." />
+    <meta name="description" content="Die angeforderte Helper-Seite wurde nicht gefunden." />
     <meta name="theme-color" content="#f7f9fc" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Helper" />
-    <title>Helper</title>
-    <script>
-      try {
-        const theme = JSON.parse(localStorage.getItem("helper_theme"));
-        if (theme) document.documentElement.dataset.theme = theme;
-      } catch {}
-    </script>
+    <title>Seite nicht gefunden | Helper</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="app.js" defer></script>
   </head>
   <body>
     <header class="site-header">
@@ -32,13 +22,12 @@
     </header>
 
     <main class="hero">
-      <section class="welcome" aria-labelledby="welcome-title">
-        <p class="eyebrow">Willkommen zur&uuml;ck</p>
-        <h1 id="welcome-title">Sch&ouml;n, dass du da bist.</h1>
-        <p>Erstelle neue Listen, behalte den &Uuml;berblick und finde alles wieder, wenn du es brauchst.</p>
+      <section class="welcome" aria-labelledby="not-found-title">
+        <p class="eyebrow">404</p>
+        <h1 id="not-found-title">Seite nicht gefunden.</h1>
+        <p>Die gesuchte Seite existiert nicht oder wurde verschoben.</p>
         <div class="actions">
-          <a class="button primary" href="neue-liste.html">Neue Liste</a>
-          <a class="button secondary" href="listen.html">Listen ansehen</a>
+          <a class="button primary" href="index.html">Zur Startseite</a>
         </div>
       </section>
     </main>
