@@ -36,10 +36,15 @@
       <section class="page-heading" aria-labelledby="artikel-title">
         <p class="eyebrow">Artikel verwalten</p>
         <h1 id="artikel-title">Deine Artikel</h1>
-        <p>Suche im Bestand und f&uuml;ge Artikel mit + zu deiner Artikelliste hinzu. Hinzugef&uuml;gte Artikel erkennst du am X und kannst sie dar&uuml;ber wieder entfernen.</p>
+        <p>F&uuml;ge eigene Artikel zur allgemeinen Artikelliste hinzu oder suche im Bestand. Artikel mit + landen in deiner Artikelliste, Artikel mit X kannst du daraus entfernen.</p>
       </section>
 
-      <section class="panel" aria-label="Artikel suchen">
+      <section class="panel article-tools" aria-label="Artikel verwalten">
+        <form class="form-row add-article-row" data-article-form>
+          <label class="sr-only" for="article-name">Artikelname</label>
+          <input id="article-name" data-article-input type="text" placeholder="Neuen Artikel zur allgemeinen Liste hinzuf&uuml;gen" required />
+          <button class="button primary icon-button confirm-button" type="submit" aria-label="Artikel hinzuf&uuml;gen" title="Artikel hinzuf&uuml;gen">+</button>
+        </form>
         <div class="form-row search-row">
           <label class="sr-only" for="article-search">Artikel suchen</label>
           <input id="article-search" data-article-search type="search" placeholder="Artikel suchen" autocomplete="off" />

@@ -23,7 +23,9 @@ const text = {
   edit: "Bearbeiten",
   hide: "Ausblenden",
   articleAdded: "Artikel wurde hinzugef\u00FCgt.",
+  articleExists: "Artikel ist bereits in der allgemeinen Artikelliste.",
   articleRemoved: "Artikel wurde entfernt.",
+  catalogArticleAdded: "Artikel wurde zur allgemeinen Artikelliste hinzugef\u00FCgt.",
   lightMode: "\u2600 Hellmodus",
   listSaved: "Liste {name} wurde gespeichert.",
   listsEmpty: "Noch keine Listen gespeichert.",
@@ -201,36 +203,48 @@ function haveSameArticleNames(left, right) {
   return left.every((article, index) => article.name === right[index].name);
 }
 
+function buildCatalogWithCustomArticles(catalog) {
+  const storedCatalog = Array.isArray(catalog) ? uniqueArticlesByName(catalog) : [];
+  const storedByName = new Map(
+    storedCatalog.map((article) => [article.name.toLowerCase(), article]),
+  );
+  const defaultNames = new Set(defaultArticles.map((name) => normalizeName(name).toLowerCase()));
+  const defaultCatalog = defaultArticles.map((name) => {
+    const cleanName = normalizeName(name);
+    return storedByName.get(cleanName.toLowerCase()) ?? { id: createId(), name: cleanName };
+  });
+  const customCatalog = storedCatalog.filter(
+    (article) => !defaultNames.has(article.name.toLowerCase()),
+  );
+
+  return uniqueArticlesByName([...defaultCatalog, ...customCatalog]);
+}
+
 function getCatalog() {
   const catalog = readStorage(CATALOG_KEY, null);
   const catalogVersion = readStorage(CATALOG_VERSION_KEY, "");
-  const namesToEnsure = [...defaultArticles];
 
   if (Array.isArray(catalog)) {
-    const catalogByName = new Map(
-      uniqueArticlesByName(catalog).map((article) => [article.name.toLowerCase(), article]),
-    );
-    const fixedCatalog = uniqueArticlesByName(
-      namesToEnsure.map((name) => {
-        const cleanName = normalizeName(name);
-        return catalogByName.get(cleanName.toLowerCase()) ?? { id: createId(), name: cleanName };
-      }),
-    );
+    const mergedCatalog = buildCatalogWithCustomArticles(catalog);
 
     if (
       catalogVersion !== DEFAULT_CATALOG_VERSION ||
-      !haveSameArticleNames(uniqueArticlesByName(catalog), fixedCatalog)
+      !haveSameArticleNames(uniqueArticlesByName(catalog), mergedCatalog)
     ) {
-      writeStorage(CATALOG_KEY, fixedCatalog);
+      writeStorage(CATALOG_KEY, mergedCatalog);
       writeStorage(CATALOG_VERSION_KEY, DEFAULT_CATALOG_VERSION);
     }
-    return fixedCatalog;
+    return mergedCatalog;
   }
 
-  const initialCatalog = uniqueArticlesByName(createArticlesFromNames(namesToEnsure));
+  const initialCatalog = uniqueArticlesByName(createArticlesFromNames(defaultArticles));
   writeStorage(CATALOG_KEY, initialCatalog);
   writeStorage(CATALOG_VERSION_KEY, DEFAULT_CATALOG_VERSION);
   return initialCatalog;
+}
+
+function saveCatalog(catalog) {
+  return writeStorage(CATALOG_KEY, buildCatalogWithCustomArticles(catalog));
 }
 
 function getArticles() {
@@ -254,6 +268,25 @@ function getArticles() {
 
 function saveArticles(articles) {
   return writeStorage(ARTICLE_KEY, uniqueArticlesByName(Array.isArray(articles) ? articles : []));
+}
+
+function addArticleToCatalog(name) {
+  const cleanName = normalizeName(name);
+  if (!cleanName) {
+    return { article: null, exists: false, stored: false };
+  }
+
+  const catalog = getCatalog();
+  const existingArticle = catalog.find(
+    (article) => article.name.toLowerCase() === cleanName.toLowerCase(),
+  );
+  if (existingArticle) {
+    return { article: existingArticle, exists: true, stored: true };
+  }
+
+  const article = { id: createId(), name: cleanName };
+  const stored = saveCatalog([...catalog, article]);
+  return { article: stored ? article : null, exists: false, stored };
 }
 
 function sanitizeListItem(item) {
@@ -310,10 +343,6 @@ function formatDateTime(date) {
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${String(date.getFullYear()).slice(-2)} / ${t("dateTimeSeparator")} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function formatItemCount(count) {
-  return `${count} ${count === 1 ? "Artikel" : "Artikel"}`;
-}
-
 function normalizeName(name) {
   return name.trim().replace(/\s+/g, " ");
 }
@@ -347,6 +376,8 @@ function setIconButton(button, symbol, label) {
 }
 
 function setupArticlePage() {
+  const form = document.querySelector("[data-article-form]");
+  const input = document.querySelector("[data-article-input]");
   const searchInput = document.querySelector("[data-article-search]");
   const list = document.querySelector("[data-article-list]");
   const status = document.querySelector("[data-article-status]");
@@ -404,6 +435,24 @@ function setupArticlePage() {
       list.append(item);
     });
   }
+
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const result = addArticleToCatalog(input.value);
+    if (status) {
+      status.textContent = result.stored
+        ? result.exists
+          ? t("articleExists")
+          : t("catalogArticleAdded")
+        : t("storageUnavailable");
+    }
+
+    if (result.stored) {
+      input.value = "";
+      render();
+    }
+    input.focus();
+  });
 
   searchInput?.addEventListener("input", render);
 
@@ -590,17 +639,8 @@ function setupListsPage() {
       const title = document.createElement("h2");
       title.textContent = list.title;
 
-      const meta = document.createElement("p");
-      meta.className = "list-count";
-      meta.textContent = formatItemCount(list.items.length);
-
       const actions = document.createElement("div");
       actions.className = "row-actions";
-
-      const showButton = document.createElement("button");
-      showButton.className = "button secondary compact";
-      showButton.type = "button";
-      setIconButton(showButton, "\u2304", t("show"));
 
       const editButton = document.createElement("button");
       editButton.className = "button secondary compact";
@@ -612,8 +652,8 @@ function setupListsPage() {
       deleteButton.type = "button";
       setIconButton(deleteButton, "\u00D7", t("delete"));
 
-      titleGroup.append(title, meta);
-      actions.append(showButton, editButton, deleteButton);
+      titleGroup.append(title);
+      actions.append(editButton, deleteButton);
       header.append(titleGroup, actions);
 
       const details = createListDetails(list);
@@ -621,18 +661,12 @@ function setupListsPage() {
 
       function toggleDetails() {
         details.hidden = !details.hidden;
-        setIconButton(showButton, details.hidden ? "\u2304" : "\u2303", details.hidden ? t("show") : t("hide"));
       }
 
       card.addEventListener("click", (event) => {
         if (event.target.closest("button, input, label, form")) {
           return;
         }
-        toggleDetails();
-      });
-
-      showButton.addEventListener("click", (event) => {
-        event.stopPropagation();
         toggleDetails();
       });
 
@@ -652,7 +686,6 @@ function setupListsPage() {
         );
         details.replaceChildren(editForm);
         details.hidden = false;
-        setIconButton(showButton, "\u2303", t("hide"));
       });
 
       deleteButton.addEventListener("click", (event) => {
