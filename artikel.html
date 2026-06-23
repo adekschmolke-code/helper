@@ -34,20 +34,22 @@
 
     <main class="page-shell">
       <section class="page-heading" aria-labelledby="artikel-title">
-        <p class="eyebrow">Artikel verwalten</p>
-        <h1 id="artikel-title">Deine Artikel</h1>
-        <p>F&uuml;ge eigene Artikel zur allgemeinen Artikelliste hinzu oder suche im Bestand. Artikel mit + landen in deiner Artikelliste, Artikel mit X kannst du daraus entfernen.</p>
+        <p class="eyebrow">Artikel</p>
+        <h1 id="artikel-title">Artikel</h1>
       </section>
 
       <section class="panel article-tools" aria-label="Artikel verwalten">
-        <form class="form-row add-article-row" data-article-form>
-          <label class="sr-only" for="article-name">Artikelname</label>
-          <input id="article-name" data-article-input type="text" placeholder="Neuen Artikel zur allgemeinen Liste hinzuf&uuml;gen" required />
-          <button class="button primary icon-button confirm-button" type="submit" aria-label="Artikel hinzuf&uuml;gen" title="Artikel hinzuf&uuml;gen">+</button>
-        </form>
+        <button class="button secondary" type="button" data-edit-toggle>Bearbeiten</button>
+        <div data-edit-panel hidden>
+          <form class="form-row add-article-row" data-article-form>
+            <label class="sr-only" for="article-name">Artikelname</label>
+            <input id="article-name" data-article-input type="text" placeholder="Neuer Artikel" required />
+            <button class="button primary icon-button confirm-button" type="submit" aria-label="Artikel hinzuf&uuml;gen" title="Artikel hinzuf&uuml;gen">+</button>
+          </form>
+        </div>
         <div class="form-row search-row">
           <label class="sr-only" for="article-search">Artikel suchen</label>
-          <input id="article-search" data-article-search type="search" placeholder="Artikel suchen" autocomplete="off" />
+          <input id="article-search" data-article-search type="search" placeholder="Suchen" autocomplete="off" />
         </div>
       </section>
 

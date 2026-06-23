@@ -432,12 +432,53 @@ input:focus-visible {
   gap: 10px;
 }
 
-.quantity-row {
-  grid-template-columns: 1fr minmax(120px, 180px);
+.list-search-row {
+  margin-bottom: 14px;
 }
 
-.quantity-row input {
-  text-align: right;
+.quantity-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.quantity-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.quantity-controls {
+  display: grid;
+  grid-template-columns: 40px minmax(64px, 84px) 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-controls .icon-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+}
+
+.quantity-input {
+  min-height: 40px;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+  padding: 0 8px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.quantity-input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
 .saved-lists {
@@ -486,11 +527,26 @@ input:focus-visible {
 
 .simple-list li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   border-radius: 8px;
   background: var(--surface-muted);
   padding: 10px 12px;
+}
+
+.saved-quantity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 34px;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+  padding: 0 10px;
+  font-size: 1.1rem;
+  font-weight: 900;
 }
 
 .edit-form {
@@ -733,8 +789,20 @@ input:focus-visible {
     min-height: 44px;
   }
 
-  .quantity-row input {
-    text-align: left;
+  .quantity-controls {
+    grid-template-columns: 44px minmax(72px, 1fr) 44px;
+    width: 100%;
+  }
+
+  .quantity-controls .icon-button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .quantity-input {
+    min-height: 44px;
   }
 
   .row-actions {

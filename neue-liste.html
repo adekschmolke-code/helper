@@ -34,18 +34,20 @@
 
     <main class="page-shell">
       <section class="page-heading" aria-labelledby="new-list-title">
-        <p class="eyebrow">Neue Liste</p>
-        <h1 id="new-list-title">Mengen eintragen</h1>
-        <p>Trage neben deinen ausgew&auml;hlten Artikeln die gew&uuml;nschte Menge ein. Leere Mengen werden nicht gespeichert.</p>
+        <p class="eyebrow">Liste</p>
+        <h1 id="new-list-title">Neue Liste</h1>
       </section>
 
-      <form class="panel" data-new-list-form>
+      <section class="panel" data-new-list-form>
+        <div class="form-row search-row list-search-row">
+          <label class="sr-only" for="list-search">Artikel in der Liste suchen</label>
+          <input id="list-search" data-list-search type="search" placeholder="Suchen" autocomplete="off" />
+        </div>
         <div class="quantity-list" data-list-articles></div>
         <div class="actions left">
-          <button class="button primary icon-button" type="submit" aria-label="Liste speichern" title="Liste speichern">&#10003;</button>
           <p class="form-status" data-status aria-live="polite"></p>
         </div>
-      </form>
+      </section>
     </main>
   </body>
 </html>

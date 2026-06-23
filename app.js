@@ -1,5 +1,6 @@
 const ARTICLE_KEY = "helper_articles";
 const CATALOG_KEY = "helper_article_catalog";
+const DELETED_CATALOG_KEY = "helper_deleted_catalog_names";
 const CATALOG_VERSION_KEY = "helper_article_catalog_version";
 const LIST_KEY = "helper_lists";
 const THEME_KEY = "helper_theme";
@@ -8,37 +9,42 @@ const DEFAULT_CATALOG_VERSION = "2026-06-23-lekkerland-getraenke";
 
 const text = {
   addArticle: "Artikel hinzuf\u00FCgen",
-  allDataDeleted: "Alle lokalen Daten wurden gel\u00F6scht.",
+  allDataDeleted: "Gel\u00F6scht.",
   appearanceDescription: "Wechsle zwischen hellem und dunklem Modus. Die Auswahl wird lokal gespeichert.",
-  appDataDeleted: "Listen und Einstellungen wurden gel\u00F6scht. Artikel bleiben erhalten.",
+  appDataDeleted: "Gel\u00F6scht.",
   articlesEmpty: "Noch keine Artikel vorhanden.",
   catalogEmpty: "Noch kein Bestand vorhanden.",
   articlesWithCache: "Sollen die gespeicherten Artikel auch gel\u00F6scht werden?",
   cacheConfirmAll: "Wirklich alles l\u00F6schen? Artikel, Listen und Einstellungen werden entfernt.",
   cacheConfirmKeepArticles: "Wirklich l\u00F6schen? Listen und Einstellungen werden entfernt, Artikel bleiben erhalten.",
   cancel: "Abbrechen",
+  catalogArticleDeleted: "Gel\u00F6scht.",
   darkMode: "\u263E Dunkelmodus",
   dateTimeSeparator: "Zeit",
   delete: "L\u00F6schen",
   edit: "Bearbeiten",
+  editDone: "Fertig",
   hide: "Ausblenden",
-  articleAdded: "Artikel wurde hinzugef\u00FCgt.",
-  articleExists: "Artikel ist bereits in der allgemeinen Artikelliste.",
-  articleRemoved: "Artikel wurde entfernt.",
-  catalogArticleAdded: "Artikel wurde zur allgemeinen Artikelliste hinzugef\u00FCgt.",
+  articleAdded: "Hinzugef\u00FCgt.",
+  articleExists: "Schon vorhanden.",
+  articleRemoved: "Entfernt.",
+  catalogArticleAdded: "Angelegt.",
   lightMode: "\u2600 Hellmodus",
+  listAutoSaved: "Gespeichert.",
   listSaved: "Liste {name} wurde gespeichert.",
   listsEmpty: "Noch keine Listen gespeichert.",
   needQuantity: "Bitte trage mindestens eine Menge ein.",
-  noArticlesForList: "W\u00E4hle zuerst Artikel aus dem Bestand aus.",
-  noSearchResults: "Keine passenden Artikel gefunden.",
+  noArticlesForList: "Keine Artikel.",
+  noSearchResults: "Kein Treffer.",
   save: "Speichern",
   saveSelection: "Auswahl speichern",
   selectionSaved: "Artikelauswahl wurde gespeichert.",
   show: "Abrufen",
-  storageUnavailable: "Speichern ist in diesem Browser gerade nicht m\u00F6glich.",
+  storageUnavailable: "Speichern fehlgeschlagen.",
   unknownArticle: "Unbekannter Artikel",
 };
+
+let activeAutoListId = "";
 
 const defaultArticles =
   typeof window !== "undefined" && Array.isArray(window.DEFAULT_ARTICLE_CATALOG)
@@ -116,7 +122,7 @@ async function clearAppCache({ includeArticles }) {
   try {
     Object.keys(localStorage)
       .filter((key) => key.startsWith(STORAGE_PREFIX))
-      .filter((key) => includeArticles || ![ARTICLE_KEY, CATALOG_KEY].includes(key))
+      .filter((key) => includeArticles || ![ARTICLE_KEY, CATALOG_KEY, DELETED_CATALOG_KEY].includes(key))
       .forEach((key) => localStorage.removeItem(key));
     if (includeArticles) {
       localStorage.setItem(ARTICLE_KEY, JSON.stringify([]));
@@ -205,16 +211,18 @@ function haveSameArticleNames(left, right) {
 
 function buildCatalogWithCustomArticles(catalog) {
   const storedCatalog = Array.isArray(catalog) ? uniqueArticlesByName(catalog) : [];
+  const deletedNames = readStorage(DELETED_CATALOG_KEY, []);
+  const deleted = new Set(Array.isArray(deletedNames) ? deletedNames.map((name) => normalizeName(name).toLowerCase()) : []);
   const storedByName = new Map(
     storedCatalog.map((article) => [article.name.toLowerCase(), article]),
   );
   const defaultNames = new Set(defaultArticles.map((name) => normalizeName(name).toLowerCase()));
-  const defaultCatalog = defaultArticles.map((name) => {
-    const cleanName = normalizeName(name);
-    return storedByName.get(cleanName.toLowerCase()) ?? { id: createId(), name: cleanName };
-  });
+  const defaultCatalog = defaultArticles
+    .map((name) => normalizeName(name))
+    .filter((name) => !deleted.has(name.toLowerCase()))
+    .map((name) => storedByName.get(name.toLowerCase()) ?? { id: createId(), name });
   const customCatalog = storedCatalog.filter(
-    (article) => !defaultNames.has(article.name.toLowerCase()),
+    (article) => !defaultNames.has(article.name.toLowerCase()) && !deleted.has(article.name.toLowerCase()),
   );
 
   return uniqueArticlesByName([...defaultCatalog, ...customCatalog]);
@@ -284,9 +292,42 @@ function addArticleToCatalog(name) {
     return { article: existingArticle, exists: true, stored: true };
   }
 
+  const deletedNames = readStorage(DELETED_CATALOG_KEY, []);
+  if (Array.isArray(deletedNames)) {
+    const nextDeletedNames = deletedNames.filter(
+      (deletedName) => normalizeName(deletedName).toLowerCase() !== cleanName.toLowerCase(),
+    );
+    if (nextDeletedNames.length !== deletedNames.length) {
+      writeStorage(DELETED_CATALOG_KEY, nextDeletedNames);
+    }
+  }
+
   const article = { id: createId(), name: cleanName };
   const stored = saveCatalog([...catalog, article]);
   return { article: stored ? article : null, exists: false, stored };
+}
+
+function deleteArticleFromCatalog(article) {
+  const cleanName = normalizeName(article.name);
+  const key = cleanName.toLowerCase();
+  const defaultNames = new Set(defaultArticles.map((name) => normalizeName(name).toLowerCase()));
+  const deletedNames = readStorage(DELETED_CATALOG_KEY, []);
+  const deleted = new Set(Array.isArray(deletedNames) ? deletedNames.map((name) => normalizeName(name).toLowerCase()) : []);
+
+  if (defaultNames.has(key)) {
+    deleted.add(key);
+    if (!writeStorage(DELETED_CATALOG_KEY, [...deleted])) {
+      return false;
+    }
+  }
+
+  const nextCatalog = getCatalog().filter((entry) => entry.name.toLowerCase() !== key);
+  if (!writeStorage(CATALOG_KEY, nextCatalog)) {
+    return false;
+  }
+
+  removeArticleFromSelection({ id: article.id, name: cleanName });
+  return true;
 }
 
 function sanitizeListItem(item) {
@@ -347,6 +388,15 @@ function normalizeName(name) {
   return name.trim().replace(/\s+/g, " ");
 }
 
+function normalizeQuantity(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) {
+    return "";
+  }
+
+  return String(Math.trunc(number));
+}
+
 function addArticleToSelection(article) {
   const selectedArticles = getArticles();
   if (!selectedArticles.some((entry) => entry.name.toLowerCase() === article.name.toLowerCase())) {
@@ -378,9 +428,23 @@ function setIconButton(button, symbol, label) {
 function setupArticlePage() {
   const form = document.querySelector("[data-article-form]");
   const input = document.querySelector("[data-article-input]");
+  const editPanel = document.querySelector("[data-edit-panel]");
+  const editToggle = document.querySelector("[data-edit-toggle]");
   const searchInput = document.querySelector("[data-article-search]");
   const list = document.querySelector("[data-article-list]");
   const status = document.querySelector("[data-article-status]");
+  let editMode = false;
+
+  function updateEditMode() {
+    if (editPanel) {
+      editPanel.hidden = !editMode;
+    }
+    if (editToggle) {
+      editToggle.textContent = editMode ? t("editDone") : t("edit");
+      editToggle.setAttribute("aria-label", editMode ? t("editDone") : t("edit"));
+      editToggle.title = editMode ? t("editDone") : t("edit");
+    }
+  }
 
   function render() {
     const catalog = getCatalog();
@@ -410,12 +474,21 @@ function setupArticlePage() {
       name.textContent = article.name;
 
       const actionButton = document.createElement("button");
-      actionButton.className = `button compact ${isSelected ? "danger" : "secondary"}`;
+      actionButton.className = `button compact ${editMode || isSelected ? "danger" : "secondary"}`;
       actionButton.type = "button";
-      setIconButton(actionButton, isSelected ? "\u00D7" : "+", isSelected ? t("delete") : t("addArticle"));
+      setIconButton(
+        actionButton,
+        editMode || isSelected ? "\u00D7" : "+",
+        editMode ? t("delete") : isSelected ? t("delete") : t("addArticle"),
+      );
       actionButton.addEventListener("click", () => {
         let stored = false;
-        if (isSelected) {
+        if (editMode) {
+          stored = deleteArticleFromCatalog(article);
+          if (status) {
+            status.textContent = stored ? t("catalogArticleDeleted") : t("storageUnavailable");
+          }
+        } else if (isSelected) {
           stored = removeArticleFromSelection(article);
           if (status) {
             status.textContent = stored ? t("articleRemoved") : t("storageUnavailable");
@@ -454,88 +527,156 @@ function setupArticlePage() {
     input.focus();
   });
 
+  editToggle?.addEventListener("click", () => {
+    editMode = !editMode;
+    updateEditMode();
+    render();
+  });
+
   searchInput?.addEventListener("input", render);
 
+  updateEditMode();
   render();
 }
 
-function createQuantityRow(article, quantity = "") {
-  const row = document.createElement("label");
+function createQuantityRow(article, quantity = "", onChange) {
+  const row = document.createElement("div");
   row.className = "quantity-row";
   row.dataset.articleId = article.id;
+  row.dataset.articleName = article.name.toLowerCase();
 
   const name = document.createElement("span");
+  name.className = "quantity-name";
   name.textContent = article.name;
 
+  const controls = document.createElement("div");
+  controls.className = "quantity-controls";
+
+  const minusButton = document.createElement("button");
+  minusButton.className = "button secondary compact";
+  minusButton.type = "button";
+  setIconButton(minusButton, "\u2212", "Menge verringern");
+
   const input = document.createElement("input");
-  input.inputMode = "decimal";
+  input.className = "quantity-input";
+  input.inputMode = "numeric";
+  input.min = "0";
   input.name = article.id;
   input.placeholder = "0";
-  input.type = "text";
+  input.type = "number";
   input.value = quantity;
 
-  row.append(name, input);
+  const plusButton = document.createElement("button");
+  plusButton.className = "button secondary compact";
+  plusButton.type = "button";
+  setIconButton(plusButton, "+", "Menge erh\u00F6hen");
+
+  function updateQuantity(nextValue) {
+    input.value = normalizeQuantity(nextValue);
+    onChange?.(article.id, input.value);
+  }
+
+  minusButton.addEventListener("click", () => {
+    updateQuantity(Math.max(0, Number(input.value || 0) - 1));
+  });
+
+  plusButton.addEventListener("click", () => {
+    updateQuantity(Number(input.value || 0) + 1);
+  });
+
+  input.addEventListener("input", () => {
+    input.value = normalizeQuantity(input.value);
+    onChange?.(article.id, input.value);
+  });
+
+  controls.append(minusButton, input, plusButton);
+  row.append(name, controls);
   return row;
 }
 
 function setupNewListPage() {
-  const listForm = document.querySelector("[data-new-list-form]");
+  const searchInput = document.querySelector("[data-list-search]");
   const articleContainer = document.querySelector("[data-list-articles]");
   const status = document.querySelector("[data-status]");
+  const quantityValues = new Map();
+
+  function collectItems() {
+    const articleMap = new Map(getArticles().map((article) => [article.id, article]));
+    return [...quantityValues.entries()]
+      .map(([articleId, quantity]) => ({
+        articleId,
+        name: articleMap.get(articleId)?.name ?? t("unknownArticle"),
+        quantity: normalizeQuantity(quantity),
+      }))
+      .filter((item) => item.quantity);
+  }
+
+  function autoSaveList() {
+    const items = collectItems();
+    if (items.length === 0) {
+      if (activeAutoListId) {
+        saveLists(getLists().filter((list) => list.id !== activeAutoListId));
+        activeAutoListId = "";
+      }
+      status.textContent = "";
+      return;
+    }
+
+    const lists = getLists();
+    const existingList = lists.find((list) => list.id === activeAutoListId);
+    if (existingList) {
+      const updatedLists = lists.map((list) =>
+        list.id === activeAutoListId ? { ...list, items } : list,
+      );
+      status.textContent = saveLists(updatedLists) ? t("listAutoSaved") : t("storageUnavailable");
+      return;
+    }
+
+    const now = new Date();
+    const list = {
+      id: createId(),
+      title: formatDateTime(now),
+      createdAt: now.toISOString(),
+      items,
+    };
+    activeAutoListId = list.id;
+    status.textContent = saveLists([list, ...lists]) ? t("listAutoSaved") : t("storageUnavailable");
+  }
 
   function renderQuantities() {
-    const oldValues = new Map(
-      [...articleContainer.querySelectorAll("input")].map((input) => [
-        input.name,
-        input.value,
-      ]),
-    );
+    [...articleContainer.querySelectorAll("input")].forEach((input) => {
+      quantityValues.set(input.name, input.value);
+    });
     articleContainer.innerHTML = "";
 
+    const searchTerm = normalizeName(searchInput?.value ?? "").toLowerCase();
     const articles = getArticles();
+    const visibleArticles = searchTerm
+      ? articles.filter((article) => article.name.toLowerCase().includes(searchTerm))
+      : articles;
+
     if (articles.length === 0) {
       articleContainer.append(createEmptyState(t("noArticlesForList")));
       return;
     }
 
-    articles.forEach((article) => {
-      articleContainer.append(createQuantityRow(article, oldValues.get(article.id) ?? ""));
+    if (visibleArticles.length === 0) {
+      articleContainer.append(createEmptyState(t("noSearchResults")));
+      return;
+    }
+
+    visibleArticles.forEach((article) => {
+      articleContainer.append(
+        createQuantityRow(article, quantityValues.get(article.id) ?? "", (articleId, quantity) => {
+          quantityValues.set(articleId, quantity);
+          autoSaveList();
+        }),
+      );
     });
   }
 
-  listForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const articleMap = new Map(getArticles().map((article) => [article.id, article]));
-    const items = [...articleContainer.querySelectorAll("input")]
-      .map((input) => ({
-        articleId: input.name,
-        name: articleMap.get(input.name)?.name ?? t("unknownArticle"),
-        quantity: normalizeName(input.value),
-      }))
-      .filter((item) => item.quantity);
-
-    if (items.length === 0) {
-      status.textContent = t("needQuantity");
-      return;
-    }
-
-    const now = new Date();
-    const lists = getLists();
-    lists.unshift({
-      id: createId(),
-      title: formatDateTime(now),
-      createdAt: now.toISOString(),
-      items,
-    });
-    if (!saveLists(lists)) {
-      status.textContent = t("storageUnavailable");
-      return;
-    }
-
-    listForm.reset();
+  searchInput?.addEventListener("input", () => {
     renderQuantities();
-    status.textContent = t("listSaved", { name: formatDateTime(now) });
   });
 
   renderQuantities();
@@ -550,7 +691,14 @@ function createListDetails(list) {
   items.className = "simple-list";
   list.items.forEach((item) => {
     const row = document.createElement("li");
-    row.textContent = `${item.name}: ${item.quantity}`;
+    const name = document.createElement("span");
+    name.textContent = item.name;
+
+    const quantity = document.createElement("strong");
+    quantity.className = "saved-quantity";
+    quantity.textContent = item.quantity;
+
+    row.append(name, quantity);
     items.append(row);
   });
 
@@ -558,9 +706,12 @@ function createListDetails(list) {
   return details;
 }
 
-function createEditForm(list, onSave, onCancel) {
+function createEditForm(list, onSave) {
   const form = document.createElement("form");
   form.className = "edit-form";
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+  });
 
   const savedItems = new Map(list.items.map((item) => [item.articleId, item]));
   const editArticles = getArticles().map((article) => ({
@@ -575,40 +726,24 @@ function createEditForm(list, onSave, onCancel) {
     }
   });
 
-  editArticles.forEach((item) => {
-    form.append(createQuantityRow({ id: item.articleId, name: item.name }, item.quantity));
-  });
-
-  const actions = document.createElement("div");
-  actions.className = "actions left";
-
-  const saveButton = document.createElement("button");
-  saveButton.className = "button primary compact";
-  saveButton.type = "submit";
-  setIconButton(saveButton, "\u2713", t("save"));
-
-  const cancelButton = document.createElement("button");
-  cancelButton.className = "button secondary compact";
-  cancelButton.type = "button";
-  setIconButton(cancelButton, "\u00D7", t("cancel"));
-  cancelButton.addEventListener("click", onCancel);
-
-  actions.append(saveButton, cancelButton);
-  form.append(actions);
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
+  function collectUpdatedItems() {
     const updatedItems = [...form.querySelectorAll("input")]
       .map((input) => {
         const original = editArticles.find((item) => item.articleId === input.name);
         return {
           articleId: input.name,
           name: original?.name ?? t("unknownArticle"),
-          quantity: normalizeName(input.value),
+        quantity: normalizeQuantity(input.value),
         };
       })
       .filter((item) => item.quantity);
     onSave(updatedItems);
+  }
+
+  editArticles.forEach((item) => {
+    form.append(
+      createQuantityRow({ id: item.articleId, name: item.name }, item.quantity, collectUpdatedItems),
+    );
   });
 
   return form;
@@ -679,10 +814,9 @@ function setupListsPage() {
               entry.id === list.id ? { ...entry, items } : entry,
             );
             if (saveLists(updatedLists)) {
-              render();
+              list.items = items;
             }
           },
-          render,
         );
         details.replaceChildren(editForm);
         details.hidden = false;
