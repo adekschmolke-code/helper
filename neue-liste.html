@@ -16,6 +16,7 @@
       } catch {}
     </script>
     <link rel="stylesheet" href="styles.css" />
+    <script src="catalog.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body data-page="neue-liste">
@@ -24,7 +25,7 @@
         <a class="brand" href="index.html">Helper</a>
         <div class="nav-links">
           <a href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span>Artikel</span></a>
-          <a class="active" href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span>Neue Liste</span></a>
+          <a class="active" aria-current="page" href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span>Neue Liste</span></a>
           <a href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span>Listen</span></a>
           <a href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Einstellungen</span></a>
         </div>
@@ -35,15 +36,7 @@
       <section class="page-heading" aria-labelledby="new-list-title">
         <p class="eyebrow">Neue Liste</p>
         <h1 id="new-list-title">Mengen eintragen</h1>
-        <p>Trage neben den Artikeln die gew&uuml;nschte Menge ein. Leere Mengen werden nicht gespeichert.</p>
-      </section>
-
-      <section class="panel" aria-label="Artikel spontan hinzuf&uuml;gen">
-        <form class="form-row" data-inline-article-form>
-          <label class="sr-only" for="inline-article-name">Artikelname</label>
-          <input id="inline-article-name" data-inline-article-input type="text" placeholder="Artikel hinzuf&uuml;gen" required />
-          <button class="button secondary icon-button" type="submit" aria-label="Artikel hinzuf&uuml;gen" title="Artikel hinzuf&uuml;gen">+</button>
-        </form>
+        <p>Trage neben deinen ausgew&auml;hlten Artikeln die gew&uuml;nschte Menge ein. Leere Mengen werden nicht gespeichert.</p>
       </section>
 
       <form class="panel" data-new-list-form>

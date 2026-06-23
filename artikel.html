@@ -16,6 +16,7 @@
       } catch {}
     </script>
     <link rel="stylesheet" href="styles.css" />
+    <script src="catalog.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body data-page="artikel">
@@ -23,7 +24,7 @@
       <nav class="navbar" aria-label="Hauptnavigation">
         <a class="brand" href="index.html">Helper</a>
         <div class="nav-links">
-          <a class="active" href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span>Artikel</span></a>
+          <a class="active" aria-current="page" href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span>Artikel</span></a>
           <a href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span>Neue Liste</span></a>
           <a href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span>Listen</span></a>
           <a href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Einstellungen</span></a>
@@ -35,18 +36,21 @@
       <section class="page-heading" aria-labelledby="artikel-title">
         <p class="eyebrow">Artikel verwalten</p>
         <h1 id="artikel-title">Deine Artikel</h1>
-        <p>F&uuml;ge Artikel hinzu und entferne alles, was du nicht mehr brauchst.</p>
+        <p>Suche im Bestand und f&uuml;ge Artikel mit + zu deiner Artikelliste hinzu. Hinzugef&uuml;gte Artikel erkennst du am X und kannst sie dar&uuml;ber wieder entfernen.</p>
       </section>
 
-      <section class="panel" aria-label="Artikel hinzuf&uuml;gen">
-        <form class="form-row" data-article-form>
-          <label class="sr-only" for="article-name">Artikelname</label>
-          <input id="article-name" data-article-input type="text" placeholder="Neuer Artikel" required />
-          <button class="button primary icon-button" type="submit" aria-label="Artikel hinzuf&uuml;gen" title="Artikel hinzuf&uuml;gen">+</button>
-        </form>
+      <section class="panel" aria-label="Artikel suchen">
+        <div class="form-row search-row">
+          <label class="sr-only" for="article-search">Artikel suchen</label>
+          <input id="article-search" data-article-search type="search" placeholder="Artikel suchen" autocomplete="off" />
+        </div>
       </section>
 
       <ul class="item-list" data-article-list aria-label="Artikelliste"></ul>
+
+      <div class="actions left">
+        <p class="form-status" data-article-status aria-live="polite"></p>
+      </div>
     </main>
   </body>
 </html>
