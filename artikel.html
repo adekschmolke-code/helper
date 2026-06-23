@@ -34,9 +34,14 @@
 
     <main class="page-shell">
       <section class="page-heading" aria-labelledby="artikel-title">
-        <p class="eyebrow">Artikel</p>
+        <p class="eyebrow" data-category-label>Artikel</p>
         <h1 id="artikel-title">Artikel</h1>
       </section>
+
+      <nav class="category-switch" aria-label="Bereich ausw&auml;hlen">
+        <a class="button secondary" href="artikel.html" data-category-link="beverages">Getr&auml;nke</a>
+        <a class="button secondary" href="artikel.html" data-category-link="cigarettes">Zigaretten</a>
+      </nav>
 
       <section class="panel article-tools" aria-label="Artikel verwalten">
         <button class="button secondary" type="button" data-edit-toggle>Bearbeiten</button>

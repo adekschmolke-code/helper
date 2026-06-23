@@ -6,6 +6,28 @@ const LIST_KEY = "helper_lists";
 const THEME_KEY = "helper_theme";
 const STORAGE_PREFIX = "helper_";
 const DEFAULT_CATALOG_VERSION = "2026-06-23-lekkerland-getraenke";
+const DEFAULT_CIGARETTE_CATALOG_VERSION = "2026-06-23-zigaretten-groessen";
+const DEFAULT_CATEGORY = "beverages";
+const CATEGORY_CONFIG = {
+  beverages: {
+    label: "Getr\u00E4nke",
+    articleKey: ARTICLE_KEY,
+    catalogKey: CATALOG_KEY,
+    deletedCatalogKey: DELETED_CATALOG_KEY,
+    catalogVersionKey: CATALOG_VERSION_KEY,
+    listKey: LIST_KEY,
+    catalogVersion: DEFAULT_CATALOG_VERSION,
+  },
+  cigarettes: {
+    label: "Zigaretten",
+    articleKey: `${STORAGE_PREFIX}cigarette_articles`,
+    catalogKey: `${STORAGE_PREFIX}cigarette_article_catalog`,
+    deletedCatalogKey: `${STORAGE_PREFIX}deleted_cigarette_catalog_names`,
+    catalogVersionKey: `${STORAGE_PREFIX}cigarette_article_catalog_version`,
+    listKey: `${STORAGE_PREFIX}cigarette_lists`,
+    catalogVersion: DEFAULT_CIGARETTE_CATALOG_VERSION,
+  },
+};
 
 const text = {
   addArticle: "Artikel hinzuf\u00FCgen",
@@ -46,10 +68,54 @@ const text = {
 
 let activeAutoListId = "";
 
-const defaultArticles =
-  typeof window !== "undefined" && Array.isArray(window.DEFAULT_ARTICLE_CATALOG)
-    ? window.DEFAULT_ARTICLE_CATALOG
-    : ["Milch", "Brot", "Eier"];
+const defaultCatalogs =
+  typeof window !== "undefined" && window.DEFAULT_CATALOGS
+    ? window.DEFAULT_CATALOGS
+    : {
+        beverages: Array.isArray(window.DEFAULT_ARTICLE_CATALOG)
+          ? window.DEFAULT_ARTICLE_CATALOG
+          : ["Milch", "Brot", "Eier"],
+        cigarettes: [],
+      };
+
+function getCategoryFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("category");
+  return CATEGORY_CONFIG[category] ? category : DEFAULT_CATEGORY;
+}
+
+function getActiveCategory() {
+  return document.body.dataset.category || getCategoryFromUrl();
+}
+
+function getCategoryConfig(category = getActiveCategory()) {
+  return CATEGORY_CONFIG[category] ?? CATEGORY_CONFIG[DEFAULT_CATEGORY];
+}
+
+function getDefaultArticles(category = getActiveCategory()) {
+  const articles = defaultCatalogs[category];
+  return Array.isArray(articles) && articles.length ? articles : [];
+}
+
+function getLegacyDefaultArticles(category = getActiveCategory()) {
+  if (
+    category === "cigarettes" &&
+    typeof window !== "undefined" &&
+    Array.isArray(window.LEGACY_CIGARETTE_CATALOG)
+  ) {
+    return window.LEGACY_CIGARETTE_CATALOG;
+  }
+
+  return [];
+}
+
+function withCategoryParam(href, category = getActiveCategory()) {
+  if (category === DEFAULT_CATEGORY || href === "index.html") {
+    return href;
+  }
+  const separator = href.includes("?") ? "&" : "?";
+  return `${href}${separator}category=${encodeURIComponent(category)}`;
+}
 
 function createId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -118,14 +184,46 @@ function setupTheme() {
   });
 }
 
+function setupCategory() {
+  const category = getCategoryFromUrl();
+  document.body.dataset.category = category;
+
+  document.querySelectorAll("[data-category-label]").forEach((element) => {
+    element.textContent = getCategoryConfig(category).label;
+  });
+
+  document.querySelectorAll("a[href$='.html']").forEach((link) => {
+    const href = link.getAttribute("href");
+    if (href && !href.includes("category=")) {
+      link.setAttribute("href", withCategoryParam(href, category));
+    }
+  });
+
+  document.querySelectorAll("[data-category-link]").forEach((link) => {
+    const linkCategory = link.dataset.categoryLink;
+    const href = link.getAttribute("href")?.split("?")[0] || "artikel.html";
+    link.setAttribute("href", withCategoryParam(href, linkCategory));
+    link.classList.toggle("active", linkCategory === category);
+    if (linkCategory === category) {
+      link.setAttribute("aria-current", "true");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+}
+
 async function clearAppCache({ includeArticles }) {
   try {
     Object.keys(localStorage)
       .filter((key) => key.startsWith(STORAGE_PREFIX))
-      .filter((key) => includeArticles || ![ARTICLE_KEY, CATALOG_KEY, DELETED_CATALOG_KEY].includes(key))
+      .filter((key) => includeArticles || !Object.values(CATEGORY_CONFIG).some((config) =>
+        [config.articleKey, config.catalogKey, config.deletedCatalogKey].includes(key),
+      ))
       .forEach((key) => localStorage.removeItem(key));
     if (includeArticles) {
-      localStorage.setItem(ARTICLE_KEY, JSON.stringify([]));
+      Object.values(CATEGORY_CONFIG).forEach((config) => {
+        localStorage.setItem(config.articleKey, JSON.stringify([]));
+      });
     }
   } catch {
     // Manche iOS-Privatmodi blockieren Speicherzugriff.
@@ -210,8 +308,10 @@ function haveSameArticleNames(left, right) {
 }
 
 function buildCatalogWithCustomArticles(catalog) {
+  const defaultArticles = getDefaultArticles();
   const storedCatalog = Array.isArray(catalog) ? uniqueArticlesByName(catalog) : [];
-  const deletedNames = readStorage(DELETED_CATALOG_KEY, []);
+  const { deletedCatalogKey } = getCategoryConfig();
+  const deletedNames = readStorage(deletedCatalogKey, []);
   const deleted = new Set(Array.isArray(deletedNames) ? deletedNames.map((name) => normalizeName(name).toLowerCase()) : []);
   const storedByName = new Map(
     storedCatalog.map((article) => [article.name.toLowerCase(), article]),
@@ -229,34 +329,44 @@ function buildCatalogWithCustomArticles(catalog) {
 }
 
 function getCatalog() {
-  const catalog = readStorage(CATALOG_KEY, null);
-  const catalogVersion = readStorage(CATALOG_VERSION_KEY, "");
+  const category = getActiveCategory();
+  const { catalogKey, catalogVersionKey, catalogVersion } = getCategoryConfig();
+  const defaultArticles = getDefaultArticles();
+  const catalog = readStorage(catalogKey, null);
+  const catalogVersionValue = readStorage(catalogVersionKey, "");
 
   if (Array.isArray(catalog)) {
-    const mergedCatalog = buildCatalogWithCustomArticles(catalog);
+    const legacyDefaultNames = catalogVersionValue !== catalogVersion
+      ? new Set(getLegacyDefaultArticles(category).map((name) => normalizeName(name).toLowerCase()))
+      : new Set();
+    const sourceCatalog = legacyDefaultNames.size
+      ? catalog.filter((article) => !legacyDefaultNames.has(normalizeName(article?.name ?? "").toLowerCase()))
+      : catalog;
+    const mergedCatalog = buildCatalogWithCustomArticles(sourceCatalog);
 
     if (
-      catalogVersion !== DEFAULT_CATALOG_VERSION ||
-      !haveSameArticleNames(uniqueArticlesByName(catalog), mergedCatalog)
+      catalogVersionValue !== catalogVersion ||
+      !haveSameArticleNames(uniqueArticlesByName(sourceCatalog), mergedCatalog)
     ) {
-      writeStorage(CATALOG_KEY, mergedCatalog);
-      writeStorage(CATALOG_VERSION_KEY, DEFAULT_CATALOG_VERSION);
+      writeStorage(catalogKey, mergedCatalog);
+      writeStorage(catalogVersionKey, catalogVersion);
     }
     return mergedCatalog;
   }
 
   const initialCatalog = uniqueArticlesByName(createArticlesFromNames(defaultArticles));
-  writeStorage(CATALOG_KEY, initialCatalog);
-  writeStorage(CATALOG_VERSION_KEY, DEFAULT_CATALOG_VERSION);
+  writeStorage(catalogKey, initialCatalog);
+  writeStorage(catalogVersionKey, catalogVersion);
   return initialCatalog;
 }
 
 function saveCatalog(catalog) {
-  return writeStorage(CATALOG_KEY, buildCatalogWithCustomArticles(catalog));
+  return writeStorage(getCategoryConfig().catalogKey, buildCatalogWithCustomArticles(catalog));
 }
 
 function getArticles() {
-  const articles = readStorage(ARTICLE_KEY, null);
+  const { articleKey } = getCategoryConfig();
+  const articles = readStorage(articleKey, null);
   if (Array.isArray(articles)) {
     const catalogNames = new Set(getCatalog().map((article) => article.name.toLowerCase()));
     const selectedArticles = uniqueArticlesByName(articles).filter((article) =>
@@ -270,12 +380,12 @@ function getArticles() {
 
   getCatalog();
   const initialArticles = [];
-  writeStorage(ARTICLE_KEY, initialArticles);
+  writeStorage(articleKey, initialArticles);
   return initialArticles;
 }
 
 function saveArticles(articles) {
-  return writeStorage(ARTICLE_KEY, uniqueArticlesByName(Array.isArray(articles) ? articles : []));
+  return writeStorage(getCategoryConfig().articleKey, uniqueArticlesByName(Array.isArray(articles) ? articles : []));
 }
 
 function addArticleToCatalog(name) {
@@ -292,13 +402,14 @@ function addArticleToCatalog(name) {
     return { article: existingArticle, exists: true, stored: true };
   }
 
-  const deletedNames = readStorage(DELETED_CATALOG_KEY, []);
+  const { deletedCatalogKey } = getCategoryConfig();
+  const deletedNames = readStorage(deletedCatalogKey, []);
   if (Array.isArray(deletedNames)) {
     const nextDeletedNames = deletedNames.filter(
       (deletedName) => normalizeName(deletedName).toLowerCase() !== cleanName.toLowerCase(),
     );
     if (nextDeletedNames.length !== deletedNames.length) {
-      writeStorage(DELETED_CATALOG_KEY, nextDeletedNames);
+      writeStorage(deletedCatalogKey, nextDeletedNames);
     }
   }
 
@@ -310,19 +421,21 @@ function addArticleToCatalog(name) {
 function deleteArticleFromCatalog(article) {
   const cleanName = normalizeName(article.name);
   const key = cleanName.toLowerCase();
+  const defaultArticles = getDefaultArticles();
+  const { catalogKey, deletedCatalogKey } = getCategoryConfig();
   const defaultNames = new Set(defaultArticles.map((name) => normalizeName(name).toLowerCase()));
-  const deletedNames = readStorage(DELETED_CATALOG_KEY, []);
+  const deletedNames = readStorage(deletedCatalogKey, []);
   const deleted = new Set(Array.isArray(deletedNames) ? deletedNames.map((name) => normalizeName(name).toLowerCase()) : []);
 
   if (defaultNames.has(key)) {
     deleted.add(key);
-    if (!writeStorage(DELETED_CATALOG_KEY, [...deleted])) {
+    if (!writeStorage(deletedCatalogKey, [...deleted])) {
       return false;
     }
   }
 
   const nextCatalog = getCatalog().filter((entry) => entry.name.toLowerCase() !== key);
-  if (!writeStorage(CATALOG_KEY, nextCatalog)) {
+  if (!writeStorage(catalogKey, nextCatalog)) {
     return false;
   }
 
@@ -367,7 +480,7 @@ function sanitizeList(list) {
 }
 
 function getLists() {
-  const lists = readStorage(LIST_KEY, []);
+  const lists = readStorage(getCategoryConfig().listKey, []);
   if (!Array.isArray(lists)) {
     return [];
   }
@@ -376,7 +489,7 @@ function getLists() {
 }
 
 function saveLists(lists) {
-  return writeStorage(LIST_KEY, Array.isArray(lists) ? lists.map(sanitizeList).filter(Boolean) : []);
+  return writeStorage(getCategoryConfig().listKey, Array.isArray(lists) ? lists.map(sanitizeList).filter(Boolean) : []);
 }
 
 function formatDateTime(date) {
@@ -838,6 +951,7 @@ function setupListsPage() {
 
 const page = document.body.dataset.page;
 
+setupCategory();
 setupTheme();
 
 if (page === "artikel") {

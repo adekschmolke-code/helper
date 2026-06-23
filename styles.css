@@ -308,6 +308,23 @@ h1 {
   margin-bottom: 28px;
 }
 
+.category-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -10px 0 18px;
+}
+
+.category-switch .button {
+  min-height: 42px;
+}
+
+.category-switch .button.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
 .page-heading h1 {
   font-size: clamp(2.2rem, 5vw, 4rem);
 }
@@ -716,6 +733,12 @@ input:focus-visible {
 
   .page-heading {
     margin-bottom: 20px;
+  }
+
+  .category-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: -6px;
   }
 
   .page-heading h1 {

@@ -34,9 +34,14 @@
 
     <main class="page-shell">
       <section class="page-heading" aria-labelledby="new-list-title">
-        <p class="eyebrow">Liste</p>
+        <p class="eyebrow" data-category-label>Liste</p>
         <h1 id="new-list-title">Neue Liste</h1>
       </section>
+
+      <nav class="category-switch" aria-label="Bereich ausw&auml;hlen">
+        <a class="button secondary" href="neue-liste.html" data-category-link="beverages">Getr&auml;nke</a>
+        <a class="button secondary" href="neue-liste.html" data-category-link="cigarettes">Zigaretten</a>
+      </nav>
 
       <section class="panel" data-new-list-form>
         <div class="form-row search-row list-search-row">
