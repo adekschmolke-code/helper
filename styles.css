@@ -105,6 +105,11 @@ a {
   text-decoration: none;
 }
 
+button,
+a {
+  touch-action: manipulation;
+}
+
 .site-header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);

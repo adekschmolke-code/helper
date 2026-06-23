@@ -34,6 +34,7 @@ const text = {
   saveSelection: "Auswahl speichern",
   selectionSaved: "Artikelauswahl wurde gespeichert.",
   show: "Abrufen",
+  storageUnavailable: "Speichern ist in diesem Browser gerade nicht m\u00F6glich.",
   unknownArticle: "Unbekannter Artikel",
 };
 
@@ -62,8 +63,10 @@ function readStorage(key, fallback) {
 function writeStorage(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
     // Die App bleibt benutzbar, wenn der Browser lokalen Speicher blockiert.
+    return false;
   }
 }
 
@@ -190,17 +193,12 @@ function uniqueArticlesByName(articles) {
     .sort((a, b) => a.name.localeCompare(b.name, "de"));
 }
 
-function mergeCatalogNames(catalog, names) {
-  const knownNames = new Set(catalog.map((article) => article.name.toLowerCase()));
-  const missingArticles = names
-    .map(normalizeName)
-    .filter((name) => name && !knownNames.has(name.toLowerCase()))
-    .map((name) => {
-      knownNames.add(name.toLowerCase());
-      return { id: createId(), name };
-    });
+function haveSameArticleNames(left, right) {
+  if (left.length !== right.length) {
+    return false;
+  }
 
-  return uniqueArticlesByName([...catalog, ...missingArticles]);
+  return left.every((article, index) => article.name === right[index].name);
 }
 
 function getCatalog() {
@@ -209,12 +207,24 @@ function getCatalog() {
   const namesToEnsure = [...defaultArticles];
 
   if (Array.isArray(catalog)) {
-    const mergedCatalog = mergeCatalogNames(catalog, namesToEnsure);
-    if (catalogVersion !== DEFAULT_CATALOG_VERSION || mergedCatalog.length !== catalog.length) {
-      writeStorage(CATALOG_KEY, mergedCatalog);
+    const catalogByName = new Map(
+      uniqueArticlesByName(catalog).map((article) => [article.name.toLowerCase(), article]),
+    );
+    const fixedCatalog = uniqueArticlesByName(
+      namesToEnsure.map((name) => {
+        const cleanName = normalizeName(name);
+        return catalogByName.get(cleanName.toLowerCase()) ?? { id: createId(), name: cleanName };
+      }),
+    );
+
+    if (
+      catalogVersion !== DEFAULT_CATALOG_VERSION ||
+      !haveSameArticleNames(uniqueArticlesByName(catalog), fixedCatalog)
+    ) {
+      writeStorage(CATALOG_KEY, fixedCatalog);
       writeStorage(CATALOG_VERSION_KEY, DEFAULT_CATALOG_VERSION);
     }
-    return mergedCatalog;
+    return fixedCatalog;
   }
 
   const initialCatalog = uniqueArticlesByName(createArticlesFromNames(namesToEnsure));
@@ -226,7 +236,14 @@ function getCatalog() {
 function getArticles() {
   const articles = readStorage(ARTICLE_KEY, null);
   if (Array.isArray(articles)) {
-    return uniqueArticlesByName(articles);
+    const catalogNames = new Set(getCatalog().map((article) => article.name.toLowerCase()));
+    const selectedArticles = uniqueArticlesByName(articles).filter((article) =>
+      catalogNames.has(article.name.toLowerCase()),
+    );
+    if (selectedArticles.length !== articles.length) {
+      saveArticles(selectedArticles);
+    }
+    return selectedArticles;
   }
 
   getCatalog();
@@ -236,7 +253,7 @@ function getArticles() {
 }
 
 function saveArticles(articles) {
-  writeStorage(ARTICLE_KEY, uniqueArticlesByName(Array.isArray(articles) ? articles : []));
+  return writeStorage(ARTICLE_KEY, uniqueArticlesByName(Array.isArray(articles) ? articles : []));
 }
 
 function sanitizeListItem(item) {
@@ -285,7 +302,7 @@ function getLists() {
 }
 
 function saveLists(lists) {
-  writeStorage(LIST_KEY, Array.isArray(lists) ? lists.map(sanitizeList).filter(Boolean) : []);
+  return writeStorage(LIST_KEY, Array.isArray(lists) ? lists.map(sanitizeList).filter(Boolean) : []);
 }
 
 function formatDateTime(date) {
@@ -304,12 +321,13 @@ function normalizeName(name) {
 function addArticleToSelection(article) {
   const selectedArticles = getArticles();
   if (!selectedArticles.some((entry) => entry.name.toLowerCase() === article.name.toLowerCase())) {
-    saveArticles([...selectedArticles, article]);
+    return saveArticles([...selectedArticles, article]);
   }
+  return true;
 }
 
 function removeArticleFromSelection(article) {
-  saveArticles(
+  return saveArticles(
     getArticles().filter((entry) => entry.name.toLowerCase() !== article.name.toLowerCase()),
   );
 }
@@ -365,18 +383,21 @@ function setupArticlePage() {
       actionButton.type = "button";
       setIconButton(actionButton, isSelected ? "\u00D7" : "+", isSelected ? t("delete") : t("addArticle"));
       actionButton.addEventListener("click", () => {
+        let stored = false;
         if (isSelected) {
-          removeArticleFromSelection(article);
+          stored = removeArticleFromSelection(article);
           if (status) {
-            status.textContent = t("articleRemoved");
+            status.textContent = stored ? t("articleRemoved") : t("storageUnavailable");
           }
         } else {
-          addArticleToSelection(article);
+          stored = addArticleToSelection(article);
           if (status) {
-            status.textContent = t("articleAdded");
+            status.textContent = stored ? t("articleAdded") : t("storageUnavailable");
           }
         }
-        render();
+        if (stored) {
+          render();
+        }
       });
 
       item.append(name, actionButton);
@@ -458,7 +479,10 @@ function setupNewListPage() {
       createdAt: now.toISOString(),
       items,
     });
-    saveLists(lists);
+    if (!saveLists(lists)) {
+      status.textContent = t("storageUnavailable");
+      return;
+    }
 
     listForm.reset();
     renderQuantities();
@@ -620,8 +644,9 @@ function setupListsPage() {
             const updatedLists = getLists().map((entry) =>
               entry.id === list.id ? { ...entry, items } : entry,
             );
-            saveLists(updatedLists);
-            render();
+            if (saveLists(updatedLists)) {
+              render();
+            }
           },
           render,
         );
@@ -632,8 +657,9 @@ function setupListsPage() {
 
       deleteButton.addEventListener("click", (event) => {
         event.stopPropagation();
-        saveLists(getLists().filter((entry) => entry.id !== list.id));
-        render();
+        if (saveLists(getLists().filter((entry) => entry.id !== list.id))) {
+          render();
+        }
       });
 
       container.append(card);
