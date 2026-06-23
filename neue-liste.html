@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -11,8 +11,6 @@
     <script>
       try {
         const theme = JSON.parse(localStorage.getItem("helper_theme"));
-        const language = JSON.parse(localStorage.getItem("helper_language")) || "en";
-        document.documentElement.lang = language;
         if (theme) document.documentElement.dataset.theme = theme;
       } catch {}
     </script>
@@ -24,33 +22,33 @@
       <nav class="navbar" aria-label="Hauptnavigation">
         <a class="brand" href="index.html">Helper</a>
         <div class="nav-links">
-          <a href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span data-i18n="navArticles">Articles</span></a>
-          <a class="active" href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span data-i18n="navNewList">New list</span></a>
-          <a href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span data-i18n="navLists">Lists</span></a>
-          <a href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Settings</span></a>
+          <a href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span>Artikel</span></a>
+          <a class="active" href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span>Neue Liste</span></a>
+          <a href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span>Listen</span></a>
+          <a href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Einstellungen</span></a>
         </div>
       </nav>
     </header>
 
     <main class="page-shell">
       <section class="page-heading" aria-labelledby="new-list-title">
-        <p class="eyebrow" data-i18n="newListEyebrow">New list</p>
-        <h1 id="new-list-title" data-i18n="newListTitle">Enter quantities</h1>
-        <p data-i18n="newListDescription">Enter the quantity next to each article. Empty quantities are not saved.</p>
+        <p class="eyebrow">Neue Liste</p>
+        <h1 id="new-list-title">Mengen eintragen</h1>
+        <p>Trage neben den Artikeln die gew&uuml;nschte Menge ein. Leere Mengen werden nicht gespeichert.</p>
       </section>
 
-      <section class="panel" aria-label="Add article" data-i18n-aria="addArticle">
+      <section class="panel" aria-label="Artikel spontan hinzuf&uuml;gen">
         <form class="form-row" data-inline-article-form>
-          <label class="sr-only" for="inline-article-name" data-i18n="articleName">Article name</label>
-          <input id="inline-article-name" data-inline-article-input type="text" placeholder="Add article" data-i18n-placeholder="addArticle" required />
-          <button class="button secondary icon-button" type="submit" aria-label="Add article" title="Add article" data-i18n-aria="addArticle">+</button>
+          <label class="sr-only" for="inline-article-name">Artikelname</label>
+          <input id="inline-article-name" data-inline-article-input type="text" placeholder="Artikel hinzuf&uuml;gen" required />
+          <button class="button secondary icon-button" type="submit" aria-label="Artikel hinzuf&uuml;gen" title="Artikel hinzuf&uuml;gen">+</button>
         </form>
       </section>
 
       <form class="panel" data-new-list-form>
         <div class="quantity-list" data-list-articles></div>
         <div class="actions left">
-          <button class="button primary icon-button" type="submit" aria-label="Save list" title="Save list" data-i18n-aria="saveList">&#10003;</button>
+          <button class="button primary icon-button" type="submit" aria-label="Liste speichern" title="Liste speichern">&#10003;</button>
           <p class="form-status" data-status aria-live="polite"></p>
         </div>
       </form>

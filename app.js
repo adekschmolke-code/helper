@@ -1,128 +1,34 @@
 const ARTICLE_KEY = "helper_articles";
 const LIST_KEY = "helper_lists";
 const THEME_KEY = "helper_theme";
-const LANGUAGE_KEY = "helper_language";
 const STORAGE_PREFIX = "helper_";
 
-const translations = {
-  en: {
-    addArticle: "Add article",
-    allDataDeleted: "All local data has been deleted.",
-    appearanceDescription: "Switch between light and dark mode. Your choice is saved locally.",
-    appearanceTitle: "Appearance",
-    appDataDeleted: "Lists and settings were deleted. Articles were kept.",
-    articleDeletedLabel: "Delete",
-    articleName: "Article name",
-    articlesDescription: "Add articles and remove anything you no longer need.",
-    articlesEmpty: "No articles yet.",
-    articlesEyebrow: "Manage articles",
-    articlesTitle: "Your articles",
-    articlesWithCache: "Should saved articles also be deleted?",
-    cancel: "Cancel",
-    cacheConfirmAll: "Really delete everything? Articles, lists and settings will be removed.",
-    cacheConfirmKeepArticles: "Really delete? Lists and settings will be removed, articles will be kept.",
-    cacheDescription: "You will be asked whether articles should also be deleted. Then you confirm the deletion.",
-    cacheTitle: "Clear cache",
-    clearLocalData: "Delete local data",
-    dateTimeSeparator: "Time",
-    delete: "Delete",
-    darkMode: "\u263E Dark mode",
-    edit: "Edit",
-    hide: "Hide",
-    homeDescription: "Create new lists, keep track of everything, and find it again when you need it.",
-    homeEyebrow: "Welcome back",
-    homeNewList: "New list",
-    homeTitle: "Good to see you.",
-    homeViewLists: "View lists",
-    languageDescription: "Choose the app language. Your choice is saved locally.",
-    languageTitle: "Language",
-    lightMode: "\u2600 Light mode",
-    listSaved: "List {name} was saved.",
-    listsDescription: "Open saved lists, edit quantities, or delete old entries.",
-    listsEmpty: "No saved lists yet.",
-    listsEyebrow: "Saved lists",
-    needQuantity: "Please enter at least one quantity.",
-    noArticlesForList: "Create an article first.",
-    navArticles: "Articles",
-    navLists: "Lists",
-    navNewList: "New list",
-    newArticlePlaceholder: "New article",
-    newListDescription: "Enter the quantity next to each article. Empty quantities are not saved.",
-    newListEyebrow: "New list",
-    newListTitle: "Enter quantities",
-    save: "Save",
-    saveList: "Save list",
-    settingsDescription: "Manage language, dark mode, and local app data.",
-    settingsEyebrow: "Preferences",
-    show: "Open",
-    unknownArticle: "Unknown article",
-  },
-  de: {
-    addArticle: "Artikel hinzufügen",
-    allDataDeleted: "Alle lokalen Daten wurden gelöscht.",
-    appDataDeleted: "Listen und Einstellungen wurden gelöscht. Artikel bleiben erhalten.",
-    articleDeletedLabel: "Löschen",
-    articleName: "Artikelname",
-    articlesEmpty: "Noch keine Artikel vorhanden.",
-    articlesWithCache: "Sollen die gespeicherten Artikel auch gelöscht werden?",
-    cancel: "Abbrechen",
-    cacheConfirmAll: "Wirklich alles löschen? Artikel, Listen und Einstellungen werden entfernt.",
-    cacheConfirmKeepArticles: "Wirklich löschen? Listen und Einstellungen werden entfernt, Artikel bleiben erhalten.",
-    dateTimeSeparator: "Zeit",
-    delete: "Löschen",
-    darkMode: "\u263E Dunkelmodus",
-    edit: "Bearbeiten",
-    hide: "Ausblenden",
-    homeDescription: "Erstelle neue Listen, behalte den Überblick und finde alles wieder, wenn du es brauchst.",
-    homeEyebrow: "Willkommen zurück",
-    homeNewList: "Neue Liste",
-    homeTitle: "Schön, dass du da bist.",
-    homeViewLists: "Listen ansehen",
-    lightMode: "\u2600 Hellmodus",
-    listSaved: "Liste {name} wurde gespeichert.",
-    listsEmpty: "Noch keine Listen gespeichert.",
-    needQuantity: "Bitte trage mindestens eine Menge ein.",
-    noArticlesForList: "Lege zuerst einen Artikel an.",
-    navArticles: "Artikel",
-    navLists: "Listen",
-    navNewList: "Neue Liste",
-    save: "Speichern",
-    addArticle: "Artikel hinzuf\u00FCgen",
-    allDataDeleted: "Alle lokalen Daten wurden gel\u00F6scht.",
-    appearanceDescription: "Wechsle zwischen hellem und dunklem Modus. Die Auswahl wird lokal gespeichert.",
-    appearanceTitle: "Darstellung",
-    appDataDeleted: "Listen und Einstellungen wurden gel\u00F6scht. Artikel bleiben erhalten.",
-    articleDeletedLabel: "L\u00F6schen",
-    articlesDescription: "F\u00FCge Artikel hinzu und entferne alles, was du nicht mehr brauchst.",
-    articlesEyebrow: "Artikel verwalten",
-    articlesTitle: "Deine Artikel",
-    articlesWithCache: "Sollen die gespeicherten Artikel auch gel\u00F6scht werden?",
-    cacheConfirmAll: "Wirklich alles l\u00F6schen? Artikel, Listen und Einstellungen werden entfernt.",
-    cacheConfirmKeepArticles: "Wirklich l\u00F6schen? Listen und Einstellungen werden entfernt, Artikel bleiben erhalten.",
-    cacheDescription: "Du wirst gefragt, ob Artikel mitgel\u00F6scht werden sollen. Danach musst du die L\u00F6schung best\u00E4tigen.",
-    cacheTitle: "Cache l\u00F6schen",
-    clearLocalData: "Lokale Daten l\u00F6schen",
-    delete: "L\u00F6schen",
-    homeDescription: "Erstelle neue Listen, behalte den \u00DCberblick und finde alles wieder, wenn du es brauchst.",
-    homeEyebrow: "Willkommen zur\u00FCck",
-    homeTitle: "Sch\u00F6n, dass du da bist.",
-    languageDescription: "W\u00E4hle die App-Sprache. Die Auswahl wird lokal gespeichert.",
-    languageTitle: "Sprache",
-    listsDescription: "Rufe gespeicherte Listen ab, bearbeite Mengen oder l\u00F6sche alte Eintr\u00E4ge.",
-    listsEyebrow: "Gespeicherte Listen",
-    newArticlePlaceholder: "Neuer Artikel",
-    newListDescription: "Trage neben den Artikeln die gew\u00FCnschte Menge ein. Leere Mengen werden nicht gespeichert.",
-    newListEyebrow: "Neue Liste",
-    newListTitle: "Mengen eintragen",
-    saveList: "Liste speichern",
-    settingsDescription: "Sprache, Darkmode und lokale App-Daten verwalten.",
-    settingsEyebrow: "Einstellungen",
-    show: "Abrufen",
-    unknownArticle: "Unbekannter Artikel",
-  },
+const text = {
+  addArticle: "Artikel hinzuf\u00FCgen",
+  allDataDeleted: "Alle lokalen Daten wurden gel\u00F6scht.",
+  appearanceDescription: "Wechsle zwischen hellem und dunklem Modus. Die Auswahl wird lokal gespeichert.",
+  appDataDeleted: "Listen und Einstellungen wurden gel\u00F6scht. Artikel bleiben erhalten.",
+  articlesEmpty: "Noch keine Artikel vorhanden.",
+  articlesWithCache: "Sollen die gespeicherten Artikel auch gel\u00F6scht werden?",
+  cacheConfirmAll: "Wirklich alles l\u00F6schen? Artikel, Listen und Einstellungen werden entfernt.",
+  cacheConfirmKeepArticles: "Wirklich l\u00F6schen? Listen und Einstellungen werden entfernt, Artikel bleiben erhalten.",
+  cancel: "Abbrechen",
+  darkMode: "\u263E Dunkelmodus",
+  dateTimeSeparator: "Zeit",
+  delete: "L\u00F6schen",
+  edit: "Bearbeiten",
+  hide: "Ausblenden",
+  lightMode: "\u2600 Hellmodus",
+  listSaved: "Liste {name} wurde gespeichert.",
+  listsEmpty: "Noch keine Listen gespeichert.",
+  needQuantity: "Bitte trage mindestens eine Menge ein.",
+  noArticlesForList: "Lege zuerst einen Artikel an.",
+  save: "Speichern",
+  show: "Abrufen",
+  unknownArticle: "Unbekannter Artikel",
 };
 
-const defaultArticles = ["Milk", "Bread", "Eggs"];
+const defaultArticles = ["Milch", "Brot", "Eier"];
 
 function createId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -145,57 +51,16 @@ function writeStorage(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // The app remains usable if a browser temporarily blocks local storage.
+    // Die App bleibt benutzbar, wenn der Browser lokalen Speicher blockiert.
   }
 }
 
-function getLanguage() {
-  const language = readStorage(LANGUAGE_KEY, "en");
-  return translations[language] ? language : "en";
-}
-
 function t(key, replacements = {}) {
-  const dictionary = translations[getLanguage()] ?? translations.en;
-  const text = dictionary[key] ?? translations.en[key] ?? key;
+  const template = text[key] ?? key;
   return Object.entries(replacements).reduce(
     (value, [name, replacement]) => value.replace(`{${name}}`, replacement),
-    text,
+    template,
   );
-}
-
-function applyLanguage() {
-  const language = getLanguage();
-  document.documentElement.lang = language;
-
-  document.querySelectorAll("[data-i18n]").forEach((element) => {
-    element.textContent = t(element.dataset.i18n);
-  });
-
-  document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
-    element.setAttribute("placeholder", t(element.dataset.i18nPlaceholder));
-  });
-
-  document.querySelectorAll("[data-i18n-aria]").forEach((element) => {
-    const label = t(element.dataset.i18nAria);
-    element.setAttribute("aria-label", label);
-    element.title = label;
-  });
-
-  document.querySelectorAll("[data-language-select]").forEach((select) => {
-    select.value = language;
-  });
-}
-
-function setupLanguage() {
-  applyLanguage();
-
-  document.querySelectorAll("[data-language-select]").forEach((select) => {
-    select.addEventListener("change", () => {
-      writeStorage(LANGUAGE_KEY, select.value);
-      applyLanguage();
-      window.location.reload();
-    });
-  });
 }
 
 function getPreferredTheme() {
@@ -211,8 +76,7 @@ function applyTheme(theme) {
   themeColor?.setAttribute("content", theme === "dark" ? "#111827" : "#f7f9fc");
 
   document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    const isDark = theme === "dark";
-    const label = isDark ? t("lightMode") : t("darkMode");
+    const label = theme === "dark" ? t("lightMode") : t("darkMode");
     button.textContent = label;
     button.setAttribute("aria-label", label);
     button.title = label;
@@ -238,7 +102,7 @@ async function clearAppCache({ includeArticles }) {
       .filter((key) => includeArticles || key !== ARTICLE_KEY)
       .forEach((key) => localStorage.removeItem(key));
   } catch {
-    // Some iOS privacy modes can block access; cache storage is still attempted below.
+    // Manche iOS-Privatmodi blockieren Speicherzugriff.
   }
 
   if ("caches" in window) {
@@ -246,7 +110,7 @@ async function clearAppCache({ includeArticles }) {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map((name) => caches.delete(name)));
     } catch {
-      // CacheStorage may be unavailable depending on browser settings.
+      // CacheStorage kann je nach Browser-Einstellung fehlen.
     }
   }
 }
@@ -258,9 +122,7 @@ function setupSettingsPage() {
   clearButton?.addEventListener("click", async () => {
     const includeArticles = window.confirm(t("articlesWithCache"));
     const confirmed = window.confirm(
-      includeArticles
-        ? t("cacheConfirmAll")
-        : t("cacheConfirmKeepArticles"),
+      includeArticles ? t("cacheConfirmAll") : t("cacheConfirmKeepArticles"),
     );
 
     if (!confirmed) {
@@ -271,9 +133,7 @@ function setupSettingsPage() {
     applyTheme(getPreferredTheme());
 
     if (status) {
-      status.textContent = includeArticles
-        ? t("allDataDeleted")
-        : t("appDataDeleted");
+      status.textContent = includeArticles ? t("allDataDeleted") : t("appDataDeleted");
     }
   });
 }
@@ -376,7 +236,7 @@ function setupArticlePage() {
       const deleteButton = document.createElement("button");
       deleteButton.className = "button danger compact";
       deleteButton.type = "button";
-      setIconButton(deleteButton, "\u00d7", t("delete"));
+      setIconButton(deleteButton, "\u00D7", t("delete"));
       deleteButton.addEventListener("click", () => {
         saveArticles(getArticles().filter((entry) => entry.id !== article.id));
         render();
@@ -540,7 +400,7 @@ function createEditForm(list, onSave, onCancel) {
   const cancelButton = document.createElement("button");
   cancelButton.className = "button secondary compact";
   cancelButton.type = "button";
-  setIconButton(cancelButton, "\u00d7", t("cancel"));
+  setIconButton(cancelButton, "\u00D7", t("cancel"));
   cancelButton.addEventListener("click", onCancel);
 
   actions.append(saveButton, cancelButton);
@@ -579,6 +439,9 @@ function setupListsPage() {
     lists.forEach((list) => {
       const card = document.createElement("article");
       card.className = "list-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `${t("show")}: ${list.title}`);
 
       const header = document.createElement("div");
       header.className = "list-card-header";
@@ -597,12 +460,12 @@ function setupListsPage() {
       const editButton = document.createElement("button");
       editButton.className = "button secondary compact";
       editButton.type = "button";
-      setIconButton(editButton, "\u270e", t("edit"));
+      setIconButton(editButton, "\u270E", t("edit"));
 
       const deleteButton = document.createElement("button");
       deleteButton.className = "button danger compact";
       deleteButton.type = "button";
-      setIconButton(deleteButton, "\u00d7", t("delete"));
+      setIconButton(deleteButton, "\u00D7", t("delete"));
 
       actions.append(showButton, editButton, deleteButton);
       header.append(title, actions);
@@ -610,16 +473,32 @@ function setupListsPage() {
       const details = createListDetails(list);
       card.append(header, details);
 
-      showButton.addEventListener("click", () => {
+      function toggleDetails() {
         details.hidden = !details.hidden;
-        setIconButton(
-          showButton,
-          details.hidden ? "\u2304" : "\u2303",
-          details.hidden ? t("show") : t("hide"),
-        );
+        setIconButton(showButton, details.hidden ? "\u2304" : "\u2303", details.hidden ? t("show") : t("hide"));
+      }
+
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("button, input, label, form")) {
+          return;
+        }
+        toggleDetails();
       });
 
-      editButton.addEventListener("click", () => {
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggleDetails();
+        }
+      });
+
+      showButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleDetails();
+      });
+
+      editButton.addEventListener("click", (event) => {
+        event.stopPropagation();
         const editForm = createEditForm(
           list,
           (items) => {
@@ -636,7 +515,8 @@ function setupListsPage() {
         setIconButton(showButton, "\u2303", t("hide"));
       });
 
-      deleteButton.addEventListener("click", () => {
+      deleteButton.addEventListener("click", (event) => {
+        event.stopPropagation();
         saveLists(getLists().filter((entry) => entry.id !== list.id));
         render();
       });
@@ -650,7 +530,6 @@ function setupListsPage() {
 
 const page = document.body.dataset.page;
 
-setupLanguage();
 setupTheme();
 
 if (page === "artikel") {

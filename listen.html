@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -11,8 +11,6 @@
     <script>
       try {
         const theme = JSON.parse(localStorage.getItem("helper_theme"));
-        const language = JSON.parse(localStorage.getItem("helper_language")) || "en";
-        document.documentElement.lang = language;
         if (theme) document.documentElement.dataset.theme = theme;
       } catch {}
     </script>
@@ -24,22 +22,22 @@
       <nav class="navbar" aria-label="Hauptnavigation">
         <a class="brand" href="index.html">Helper</a>
         <div class="nav-links">
-          <a href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span data-i18n="navArticles">Articles</span></a>
-          <a href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span data-i18n="navNewList">New list</span></a>
-          <a class="active" href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span data-i18n="navLists">Lists</span></a>
-          <a href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Settings</span></a>
+          <a href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span>Artikel</span></a>
+          <a href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span>Neue Liste</span></a>
+          <a class="active" href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span>Listen</span></a>
+          <a href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Einstellungen</span></a>
         </div>
       </nav>
     </header>
 
     <main class="page-shell">
       <section class="page-heading" aria-labelledby="lists-title">
-        <p class="eyebrow" data-i18n="listsEyebrow">Saved lists</p>
-        <h1 id="lists-title" data-i18n="navLists">Lists</h1>
-        <p data-i18n="listsDescription">Open saved lists, edit quantities, or delete old entries.</p>
+        <p class="eyebrow">Gespeicherte Listen</p>
+        <h1 id="lists-title">Listen</h1>
+        <p>Klicke eine Liste an, um sie zu &ouml;ffnen. Mengen k&ouml;nnen bearbeitet und alte Eintr&auml;ge gel&ouml;scht werden.</p>
       </section>
 
-      <section class="saved-lists" data-saved-lists aria-label="Saved lists" data-i18n-aria="listsEyebrow"></section>
+      <section class="saved-lists" data-saved-lists aria-label="Gespeicherte Listen"></section>
     </main>
   </body>
 </html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -7,12 +7,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Helper" />
-    <title>Settings | Helper</title>
+    <title>Einstellungen | Helper</title>
     <script>
       try {
         const theme = JSON.parse(localStorage.getItem("helper_theme"));
-        const language = JSON.parse(localStorage.getItem("helper_language")) || "en";
-        document.documentElement.lang = language;
         if (theme) document.documentElement.dataset.theme = theme;
       } catch {}
     </script>
@@ -21,51 +19,39 @@
   </head>
   <body data-page="settings">
     <header class="site-header">
-      <nav class="navbar" aria-label="Main navigation">
+      <nav class="navbar" aria-label="Hauptnavigation">
         <a class="brand" href="index.html">Helper</a>
         <div class="nav-links">
-          <a href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span data-i18n="navArticles">Articles</span></a>
-          <a href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span data-i18n="navNewList">New list</span></a>
-          <a href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span data-i18n="navLists">Lists</span></a>
-          <a class="active" href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Settings</span></a>
+          <a href="artikel.html"><span class="nav-icon" aria-hidden="true">&#9633;</span><span>Artikel</span></a>
+          <a href="neue-liste.html"><span class="nav-icon" aria-hidden="true">+</span><span>Neue Liste</span></a>
+          <a href="listen.html"><span class="nav-icon" aria-hidden="true">&#9776;</span><span>Listen</span></a>
+          <a class="active" href="settings.html"><span class="nav-icon" aria-hidden="true">&#9881;</span><span>Einstellungen</span></a>
         </div>
       </nav>
     </header>
 
     <main class="page-shell">
       <section class="page-heading" aria-labelledby="settings-title">
-        <p class="eyebrow" data-i18n="settingsEyebrow">Preferences</p>
-        <h1 id="settings-title">Settings</h1>
-        <p data-i18n="settingsDescription">Manage language, dark mode, and local app data.</p>
+        <p class="eyebrow">Einstellungen</p>
+        <h1 id="settings-title">Einstellungen</h1>
+        <p>Darkmode und lokale App-Daten verwalten.</p>
       </section>
 
-      <section class="settings-grid" aria-label="Settings">
+      <section class="settings-grid" aria-label="Einstellungen">
         <article class="settings-card">
           <div>
-            <h2 data-i18n="appearanceTitle">Appearance</h2>
-            <p data-i18n="appearanceDescription">Switch between light and dark mode. Your choice is saved locally.</p>
+            <h2>Darstellung</h2>
+            <p>Wechsle zwischen hellem und dunklem Modus. Die Auswahl wird lokal gespeichert.</p>
           </div>
-          <button class="button secondary" type="button" data-theme-toggle>Dark mode</button>
-        </article>
-
-        <article class="settings-card">
-          <div>
-            <h2 data-i18n="languageTitle">Language</h2>
-            <p data-i18n="languageDescription">Choose the app language. Your choice is saved locally.</p>
-          </div>
-          <label class="sr-only" for="language-select" data-i18n="languageTitle">Language</label>
-          <select id="language-select" data-language-select>
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
-          </select>
+          <button class="button secondary" type="button" data-theme-toggle>Dunkelmodus</button>
         </article>
 
         <article class="settings-card danger-zone">
           <div>
-            <h2 data-i18n="cacheTitle">Clear cache</h2>
-            <p data-i18n="cacheDescription">You will be asked whether articles should also be deleted. Then you confirm the deletion.</p>
+            <h2>Cache l&ouml;schen</h2>
+            <p>Du wirst gefragt, ob Artikel mitgel&ouml;scht werden sollen. Danach musst du die L&ouml;schung best&auml;tigen.</p>
           </div>
-          <button class="button danger" type="button" data-clear-cache data-i18n="clearLocalData">Delete local data</button>
+          <button class="button danger" type="button" data-clear-cache>Lokale Daten l&ouml;schen</button>
         </article>
       </section>
 
