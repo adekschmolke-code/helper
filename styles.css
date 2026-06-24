@@ -389,6 +389,13 @@ h1 {
   gap: 12px;
 }
 
+.form-row > *,
+.item-row > *,
+.quantity-row > *,
+.list-card-header > * {
+  min-width: 0;
+}
+
 .article-tools {
   display: grid;
   gap: 12px;
@@ -551,6 +558,11 @@ select:focus-visible {
 
 .quantity-name {
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.item-text span:first-child,
+.simple-list li span {
   overflow-wrap: anywhere;
 }
 
@@ -939,7 +951,7 @@ select:focus-visible {
 
   .row-actions {
     display: grid;
-    grid-template-columns: repeat(2, 44px);
+    grid-template-columns: repeat(2, 46px);
     justify-content: start;
     gap: 8px;
   }
