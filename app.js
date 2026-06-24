@@ -782,6 +782,10 @@ function setupArticlePage() {
   const status = document.querySelector("[data-article-status]");
   let editMode = false;
 
+  if (!list) {
+    return;
+  }
+
   if (categorySelect) {
     categorySelect.hidden = getActiveCategory() !== "beverages";
     categorySelect.disabled = getActiveCategory() !== "beverages";
@@ -991,6 +995,10 @@ function setupNewListPage() {
   const status = document.querySelector("[data-status]");
   const quantityValues = new Map();
 
+  if (!articleContainer) {
+    return;
+  }
+
   function collectItems() {
     const articleMap = new Map(getCatalog().map((article) => [article.id, article]));
     return [...quantityValues.entries()]
@@ -1009,7 +1017,9 @@ function setupNewListPage() {
         saveLists(getLists().filter((list) => list.id !== activeAutoListId));
         activeAutoListId = "";
       }
-      status.textContent = "";
+      if (status) {
+        status.textContent = "";
+      }
       return;
     }
 
@@ -1019,7 +1029,11 @@ function setupNewListPage() {
       const updatedLists = lists.map((list) =>
         list.id === activeAutoListId ? { ...list, items } : list,
       );
-      status.textContent = saveLists(updatedLists) ? t("listAutoSaved") : t("storageUnavailable");
+      if (status) {
+        status.textContent = saveLists(updatedLists) ? t("listAutoSaved") : t("storageUnavailable");
+      } else {
+        saveLists(updatedLists);
+      }
       return;
     }
 
@@ -1031,7 +1045,11 @@ function setupNewListPage() {
       items,
     };
     activeAutoListId = list.id;
-    status.textContent = saveLists([list, ...lists]) ? t("listAutoSaved") : t("storageUnavailable");
+    if (status) {
+      status.textContent = saveLists([list, ...lists]) ? t("listAutoSaved") : t("storageUnavailable");
+    } else {
+      saveLists([list, ...lists]);
+    }
   }
 
   function renderQuantities() {
@@ -1131,7 +1149,7 @@ function createEditForm(list, onSave) {
         return {
           articleId: input.name,
           name: original?.name ?? t("unknownArticle"),
-        quantity: normalizeQuantity(input.value),
+          quantity: normalizeQuantity(input.value),
         };
       })
       .filter((item) => item.quantity);
@@ -1149,6 +1167,10 @@ function createEditForm(list, onSave) {
 
 function setupListsPage() {
   const container = document.querySelector("[data-saved-lists]");
+
+  if (!container) {
+    return;
+  }
 
   function render() {
     const lists = getLists();
