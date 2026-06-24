@@ -49,6 +49,13 @@
           <form class="form-row add-article-row" data-article-form>
             <label class="sr-only" for="article-name">Artikelname</label>
             <input id="article-name" data-article-input type="text" placeholder="Neuer Artikel" required />
+            <label class="sr-only" for="article-category">Kategorie</label>
+            <select id="article-category" data-article-category>
+              <option value="coffee_milk">Kaffee &amp; Milchgetr&auml;nke</option>
+              <option value="water">Wasser</option>
+              <option value="softdrinks" selected>Softdrinks</option>
+              <option value="energy">Energy</option>
+            </select>
             <button class="button primary icon-button confirm-button" type="submit" aria-label="Artikel hinzuf&uuml;gen" title="Artikel hinzuf&uuml;gen">+</button>
           </form>
         </div>

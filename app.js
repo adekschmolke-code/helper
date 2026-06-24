@@ -5,9 +5,15 @@ const CATALOG_VERSION_KEY = "helper_article_catalog_version";
 const LIST_KEY = "helper_lists";
 const THEME_KEY = "helper_theme";
 const STORAGE_PREFIX = "helper_";
-const DEFAULT_CATALOG_VERSION = "2026-06-24-getraenke-kurz";
+const DEFAULT_CATALOG_VERSION = "2026-06-24-getraenke-kategorien";
 const DEFAULT_CIGARETTE_CATALOG_VERSION = "2026-06-24-zigaretten-kurz";
 const DEFAULT_CATEGORY = "beverages";
+const BEVERAGE_CATEGORIES = [
+  { id: "coffee_milk", label: "Kaffee & Milchgetr\u00E4nke" },
+  { id: "water", label: "Wasser" },
+  { id: "softdrinks", label: "Softdrinks" },
+  { id: "energy", label: "Energy" },
+];
 const CATEGORY_CONFIG = {
   beverages: {
     label: "Getr\u00E4nke",
@@ -274,7 +280,35 @@ function createArticlesFromNames(names) {
   return names.map((name) => ({
     id: createId(),
     name,
+    ...createArticleMetadata(name),
   }));
+}
+
+function getBeverageCategoryById(categoryId) {
+  return BEVERAGE_CATEGORIES.find((category) => category.id === categoryId) ?? BEVERAGE_CATEGORIES[2];
+}
+
+function getBeverageCategoryId(name) {
+  const groupRank = getBeverageGroupRank(name);
+  return BEVERAGE_CATEGORIES[groupRank]?.id ?? "softdrinks";
+}
+
+function createArticleMetadata(name, categoryId = "") {
+  if (getActiveCategory() !== "beverages") {
+    return {};
+  }
+
+  return {
+    category: getBeverageCategoryById(categoryId || getBeverageCategoryId(name)).id,
+  };
+}
+
+function getArticleCategory(article) {
+  if (getActiveCategory() !== "beverages") {
+    return null;
+  }
+
+  return getBeverageCategoryById(article.category || getBeverageCategoryId(article.name));
 }
 
 function uniqueArticlesByName(articles) {
@@ -293,6 +327,7 @@ function uniqueArticlesByName(articles) {
       return {
         id: typeof article.id === "string" && article.id ? article.id : createId(),
         name,
+        ...createArticleMetadata(name, article.category),
       };
     })
     .filter(Boolean)
@@ -304,7 +339,148 @@ function uniqueArticlesByName(articles) {
       seen.add(key);
       return true;
     })
-    .sort((a, b) => a.name.localeCompare(b.name, "de"));
+    .sort(compareArticles);
+}
+
+function getDefaultArticleOrder(category = getActiveCategory()) {
+  return new Map(
+    getDefaultArticles(category).map((name, index) => [normalizeName(name).toLowerCase(), index]),
+  );
+}
+
+function getBeverageGroupRank(name) {
+  const lowerName = name.toLowerCase();
+  const coffeeAndMilkTerms = [
+    "starbucks",
+    "oatly",
+    "nescafé",
+    "nescafe",
+    "brown",
+    "café",
+    "caffè",
+    "caffe",
+    "latte",
+    "espresso",
+    "macchiato",
+    "cappuccino",
+    "kakao",
+    "müllermilch",
+    "mullermilch",
+    "yfood",
+    "yopro",
+  ];
+  const energyTerms = [
+    "effect",
+    "28 black",
+    "flying horse",
+    "take off",
+    "gönrgy",
+    "gonrgy",
+    "monster",
+    "rockstar",
+  ];
+
+  if (coffeeAndMilkTerms.some((term) => lowerName.includes(term))) {
+    return 0;
+  }
+
+  if (lowerName.includes("wasser")) {
+    return 1;
+  }
+
+  if (energyTerms.some((term) => lowerName.includes(term))) {
+    return 3;
+  }
+
+  return 2;
+}
+
+function getBeverageSortKey(name, defaultIndex = Number.MAX_SAFE_INTEGER, categoryId = "") {
+  const lowerName = name.toLowerCase();
+  const volumeMatch = lowerName.match(/(\d+(?:[,.]\d+)?)\s*l\b/);
+  const volume = volumeMatch ? Number(volumeMatch[1].replace(",", ".")) : 0;
+  const categoryRank = categoryId
+    ? BEVERAGE_CATEGORIES.findIndex((category) => category.id === categoryId)
+    : getBeverageGroupRank(name);
+  const packageRank = lowerName.includes("dose")
+    ? 0
+    : lowerName.includes("pet 0,5") || lowerName.includes("pet-flasche, 0,50")
+      ? 1
+      : lowerName.includes("flasche") || lowerName.includes("pet")
+        ? 2
+        : 3;
+
+  return [categoryRank >= 0 ? categoryRank : getBeverageGroupRank(name), defaultIndex, packageRank, volume, name];
+}
+
+function getCigaretteSortKey(name) {
+  const [, rawSize = ""] = name.split(/\s[–-]\s/);
+  const size = rawSize.trim().toLowerCase();
+  const number = Number(size.replace(",", "."));
+  const namedSizeOrder = {
+    l: 100,
+    long: 101,
+    xl: 110,
+    xxl: 120,
+  };
+  const sizeRank = Number.isFinite(number) ? number : (namedSizeOrder[size] ?? 0);
+
+  return [name.replace(/\s[–-]\s.*$/, ""), sizeRank, name];
+}
+
+function compareSortKeys(left, right) {
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const leftValue = left[index] ?? "";
+    const rightValue = right[index] ?? "";
+    if (typeof leftValue === "number" && typeof rightValue === "number") {
+      if (leftValue !== rightValue) {
+        return leftValue - rightValue;
+      }
+      continue;
+    }
+
+    const compared = String(leftValue).localeCompare(String(rightValue), "de", {
+      numeric: true,
+      sensitivity: "base",
+    });
+    if (compared !== 0) {
+      return compared;
+    }
+  }
+
+  return 0;
+}
+
+function compareArticles(left, right) {
+  const category = getActiveCategory();
+  const defaultOrder = getDefaultArticleOrder(category);
+  const leftDefaultIndex = defaultOrder.get(left.name.toLowerCase());
+  const rightDefaultIndex = defaultOrder.get(right.name.toLowerCase());
+
+  if (category === "beverages") {
+    return compareSortKeys(
+      getBeverageSortKey(left.name, leftDefaultIndex ?? Number.MAX_SAFE_INTEGER, left.category),
+      getBeverageSortKey(right.name, rightDefaultIndex ?? Number.MAX_SAFE_INTEGER, right.category),
+    );
+  }
+
+  if (leftDefaultIndex !== undefined && rightDefaultIndex !== undefined) {
+    return leftDefaultIndex - rightDefaultIndex;
+  }
+
+  if (leftDefaultIndex !== undefined) {
+    return -1;
+  }
+
+  if (rightDefaultIndex !== undefined) {
+    return 1;
+  }
+
+  if (category === "cigarettes") {
+    return compareSortKeys(getCigaretteSortKey(left.name), getCigaretteSortKey(right.name));
+  }
+
+  return left.name.localeCompare(right.name, "de", { numeric: true, sensitivity: "base" });
 }
 
 function haveSameArticleNames(left, right) {
@@ -396,7 +572,7 @@ function saveArticles(articles) {
   return writeStorage(getCategoryConfig().articleKey, uniqueArticlesByName(Array.isArray(articles) ? articles : []));
 }
 
-function addArticleToCatalog(name) {
+function addArticleToCatalog(name, categoryId = "") {
   const cleanName = normalizeName(name);
   if (!cleanName) {
     return { article: null, exists: false, stored: false };
@@ -421,7 +597,7 @@ function addArticleToCatalog(name) {
     }
   }
 
-  const article = { id: createId(), name: cleanName };
+  const article = { id: createId(), name: cleanName, ...createArticleMetadata(cleanName, categoryId) };
   const stored = saveCatalog([...catalog, article]);
   return { article: stored ? article : null, exists: false, stored };
 }
@@ -546,15 +722,42 @@ function setIconButton(button, symbol, label) {
   button.title = label;
 }
 
+function createCategoryPill(category) {
+  const pill = document.createElement("span");
+  pill.className = "category-pill";
+  pill.textContent = category.label;
+  return pill;
+}
+
+function createCategoryHeader(category) {
+  const header = document.createElement("li");
+  header.className = "category-header";
+  header.textContent = category.label;
+  return header;
+}
+
+function createQuantityCategoryHeader(category) {
+  const header = document.createElement("div");
+  header.className = "category-header quantity-category-header";
+  header.textContent = category.label;
+  return header;
+}
+
 function setupArticlePage() {
   const form = document.querySelector("[data-article-form]");
   const input = document.querySelector("[data-article-input]");
+  const categorySelect = document.querySelector("[data-article-category]");
   const editPanel = document.querySelector("[data-edit-panel]");
   const editToggle = document.querySelector("[data-edit-toggle]");
   const searchInput = document.querySelector("[data-article-search]");
   const list = document.querySelector("[data-article-list]");
   const status = document.querySelector("[data-article-status]");
   let editMode = false;
+
+  if (categorySelect) {
+    categorySelect.hidden = getActiveCategory() !== "beverages";
+    categorySelect.disabled = getActiveCategory() !== "beverages";
+  }
 
   function updateEditMode() {
     if (editPanel) {
@@ -586,13 +789,28 @@ function setupArticlePage() {
       return;
     }
 
+    let previousCategoryId = "";
     visibleCatalog.forEach((article) => {
+      const articleCategory = getArticleCategory(article);
+      if (articleCategory && articleCategory.id !== previousCategoryId) {
+        list.append(createCategoryHeader(articleCategory));
+        previousCategoryId = articleCategory.id;
+      }
+
       const item = document.createElement("li");
       const isSelected = selectedNames.has(article.name.toLowerCase());
       item.className = `item-row${isSelected ? " is-selected" : ""}`;
 
+      const textGroup = document.createElement("span");
+      textGroup.className = "item-text";
+
       const name = document.createElement("span");
       name.textContent = article.name;
+      textGroup.append(name);
+
+      if (articleCategory) {
+        textGroup.append(createCategoryPill(articleCategory));
+      }
 
       const actionButton = document.createElement("button");
       actionButton.className = `button compact ${editMode || isSelected ? "danger" : "secondary"}`;
@@ -625,14 +843,14 @@ function setupArticlePage() {
         }
       });
 
-      item.append(name, actionButton);
+      item.append(textGroup, actionButton);
       list.append(item);
     });
   }
 
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
-    const result = addArticleToCatalog(input.value);
+    const result = addArticleToCatalog(input.value, categorySelect?.value ?? "");
     if (status) {
       status.textContent = result.stored
         ? result.exists
@@ -786,7 +1004,14 @@ function setupNewListPage() {
       return;
     }
 
+    let previousCategoryId = "";
     visibleArticles.forEach((article) => {
+      const articleCategory = getArticleCategory(article);
+      if (articleCategory && articleCategory.id !== previousCategoryId) {
+        articleContainer.append(createQuantityCategoryHeader(articleCategory));
+        previousCategoryId = articleCategory.id;
+      }
+
       articleContainer.append(
         createQuantityRow(article, quantityValues.get(article.id) ?? "", (articleId, quantity) => {
           quantityValues.set(articleId, quantity);
