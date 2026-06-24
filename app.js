@@ -5,8 +5,8 @@ const CATALOG_VERSION_KEY = "helper_article_catalog_version";
 const LIST_KEY = "helper_lists";
 const THEME_KEY = "helper_theme";
 const STORAGE_PREFIX = "helper_";
-const DEFAULT_CATALOG_VERSION = "2026-06-23-lekkerland-getraenke";
-const DEFAULT_CIGARETTE_CATALOG_VERSION = "2026-06-23-zigaretten-groessen";
+const DEFAULT_CATALOG_VERSION = "2026-06-24-getraenke-kurz";
+const DEFAULT_CIGARETTE_CATALOG_VERSION = "2026-06-24-zigaretten-kurz";
 const DEFAULT_CATEGORY = "beverages";
 const CATEGORY_CONFIG = {
   beverages: {
@@ -98,6 +98,14 @@ function getDefaultArticles(category = getActiveCategory()) {
 }
 
 function getLegacyDefaultArticles(category = getActiveCategory()) {
+  if (
+    category === "beverages" &&
+    typeof window !== "undefined" &&
+    Array.isArray(window.LEGACY_BEVERAGE_CATALOG)
+  ) {
+    return window.LEGACY_BEVERAGE_CATALOG;
+  }
+
   if (
     category === "cigarettes" &&
     typeof window !== "undefined" &&
