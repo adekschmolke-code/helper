@@ -469,10 +469,28 @@ select:focus-visible {
   color: var(--primary-soft-text);
 }
 
+.item-row.is-editing {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .item-text {
   display: grid;
   gap: 6px;
   min-width: 0;
+}
+
+.inline-edit-input,
+.inline-category-select {
+  width: 100%;
+}
+
+.inline-edit-input {
+  min-height: 42px;
+}
+
+.inline-category-select {
+  min-height: 42px;
 }
 
 .category-pill {
@@ -891,6 +909,10 @@ select:focus-visible {
   .item-row {
     grid-template-columns: minmax(0, 1fr) 46px;
     padding: 11px 12px;
+  }
+
+  .item-row.is-editing {
+    grid-template-columns: 1fr;
   }
 
   .item-row .icon-button,

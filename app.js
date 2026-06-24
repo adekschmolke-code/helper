@@ -47,6 +47,7 @@ const text = {
   cacheConfirmKeepArticles: "Wirklich l\u00F6schen? Listen und Einstellungen werden entfernt, Artikel bleiben erhalten.",
   cancel: "Abbrechen",
   catalogArticleDeleted: "Gel\u00F6scht.",
+  catalogArticleUpdated: "Gespeichert.",
   darkMode: "\u263E Dunkelmodus",
   dateTimeSeparator: "Zeit",
   delete: "L\u00F6schen",
@@ -602,6 +603,78 @@ function addArticleToCatalog(name, categoryId = "") {
   return { article: stored ? article : null, exists: false, stored };
 }
 
+function updateArticleInCatalog(article, nextName, categoryId = "") {
+  const cleanName = normalizeName(nextName);
+  const oldName = normalizeName(article.name);
+  const oldKey = oldName.toLowerCase();
+  const nextKey = cleanName.toLowerCase();
+
+  if (!cleanName) {
+    return { exists: false, stored: false };
+  }
+
+  const catalog = getCatalog();
+  const nameConflict = catalog.some(
+    (entry) => entry.name.toLowerCase() === nextKey && entry.id !== article.id,
+  );
+  if (nameConflict) {
+    return { exists: true, stored: true };
+  }
+
+  const { deletedCatalogKey } = getCategoryConfig();
+  const defaultNames = new Set(getDefaultArticles().map((name) => normalizeName(name).toLowerCase()));
+  const deletedNames = readStorage(deletedCatalogKey, []);
+  const deleted = new Set(Array.isArray(deletedNames) ? deletedNames.map((name) => normalizeName(name).toLowerCase()) : []);
+
+  if (defaultNames.has(oldKey) && oldKey !== nextKey) {
+    deleted.add(oldKey);
+  }
+
+  if (defaultNames.has(nextKey)) {
+    deleted.delete(nextKey);
+  }
+
+  const updatedArticle = {
+    ...article,
+    name: cleanName,
+    ...createArticleMetadata(cleanName, categoryId || article.category),
+  };
+  const selectedArticles = getArticles();
+  const savedLists = getLists();
+  const nextCatalog = catalog.map((entry) =>
+    entry.id === article.id || entry.name.toLowerCase() === oldKey ? updatedArticle : entry,
+  );
+
+  if (!writeStorage(deletedCatalogKey, [...deleted])) {
+    return { exists: false, stored: false };
+  }
+
+  if (!saveCatalog(nextCatalog)) {
+    return { exists: false, stored: false };
+  }
+
+  saveArticles(
+    selectedArticles.map((entry) =>
+      entry.id === article.id || entry.name.toLowerCase() === oldKey
+        ? { ...entry, ...updatedArticle }
+        : entry,
+    ),
+  );
+
+  saveLists(
+    savedLists.map((list) => ({
+      ...list,
+      items: list.items.map((item) =>
+        item.articleId === article.id || item.name.toLowerCase() === oldKey
+          ? { ...item, articleId: article.id, name: cleanName }
+          : item,
+      ),
+    })),
+  );
+
+  return { exists: false, stored: true };
+}
+
 function deleteArticleFromCatalog(article) {
   const cleanName = normalizeName(article.name);
   const key = cleanName.toLowerCase();
@@ -743,6 +816,19 @@ function createQuantityCategoryHeader(category) {
   return header;
 }
 
+function createBeverageCategorySelect(value = "") {
+  const select = document.createElement("select");
+  select.className = "inline-category-select";
+  BEVERAGE_CATEGORIES.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category.id;
+    option.textContent = category.label;
+    option.selected = category.id === getBeverageCategoryById(value).id;
+    select.append(option);
+  });
+  return select;
+}
+
 function setupArticlePage() {
   const form = document.querySelector("[data-article-form]");
   const input = document.querySelector("[data-article-input]");
@@ -799,10 +885,67 @@ function setupArticlePage() {
 
       const item = document.createElement("li");
       const isSelected = selectedNames.has(article.name.toLowerCase());
-      item.className = `item-row${isSelected ? " is-selected" : ""}`;
+      item.className = `item-row${isSelected ? " is-selected" : ""}${editMode ? " is-editing" : ""}`;
 
       const textGroup = document.createElement("span");
       textGroup.className = "item-text";
+
+      if (editMode) {
+        const editInput = document.createElement("input");
+        editInput.className = "inline-edit-input";
+        editInput.type = "text";
+        editInput.value = article.name;
+        editInput.setAttribute("aria-label", "Artikelname bearbeiten");
+
+        let editCategorySelect = null;
+        textGroup.append(editInput);
+
+        if (articleCategory) {
+          editCategorySelect = createBeverageCategorySelect(articleCategory.id);
+          editCategorySelect.setAttribute("aria-label", "Kategorie bearbeiten");
+          textGroup.append(editCategorySelect);
+        }
+
+        const actions = document.createElement("div");
+        actions.className = "row-actions";
+
+        const saveButton = document.createElement("button");
+        saveButton.className = "button primary compact";
+        saveButton.type = "button";
+        setIconButton(saveButton, "\u2713", t("save"));
+        saveButton.addEventListener("click", () => {
+          const result = updateArticleInCatalog(article, editInput.value, editCategorySelect?.value ?? "");
+          if (status) {
+            status.textContent = result.stored
+              ? result.exists
+                ? t("articleExists")
+                : t("catalogArticleUpdated")
+              : t("storageUnavailable");
+          }
+          if (result.stored && !result.exists) {
+            render();
+          }
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "button danger compact";
+        deleteButton.type = "button";
+        setIconButton(deleteButton, "\u00D7", t("delete"));
+        deleteButton.addEventListener("click", () => {
+          const stored = deleteArticleFromCatalog(article);
+          if (status) {
+            status.textContent = stored ? t("catalogArticleDeleted") : t("storageUnavailable");
+          }
+          if (stored) {
+            render();
+          }
+        });
+
+        actions.append(saveButton, deleteButton);
+        item.append(textGroup, actions);
+        list.append(item);
+        return;
+      }
 
       const name = document.createElement("span");
       name.textContent = article.name;
@@ -813,21 +956,16 @@ function setupArticlePage() {
       }
 
       const actionButton = document.createElement("button");
-      actionButton.className = `button compact ${editMode || isSelected ? "danger" : "secondary"}`;
+      actionButton.className = `button compact ${isSelected ? "danger" : "secondary"}`;
       actionButton.type = "button";
       setIconButton(
         actionButton,
-        editMode || isSelected ? "\u00D7" : "+",
-        editMode ? t("delete") : isSelected ? t("delete") : t("addArticle"),
+        isSelected ? "\u00D7" : "+",
+        isSelected ? t("delete") : t("addArticle"),
       );
       actionButton.addEventListener("click", () => {
         let stored = false;
-        if (editMode) {
-          stored = deleteArticleFromCatalog(article);
-          if (status) {
-            status.textContent = stored ? t("catalogArticleDeleted") : t("storageUnavailable");
-          }
-        } else if (isSelected) {
+        if (isSelected) {
           stored = removeArticleFromSelection(article);
           if (status) {
             status.textContent = stored ? t("articleRemoved") : t("storageUnavailable");
@@ -940,7 +1078,7 @@ function setupNewListPage() {
   const quantityValues = new Map();
 
   function collectItems() {
-    const articleMap = new Map(getArticles().map((article) => [article.id, article]));
+    const articleMap = new Map(getCatalog().map((article) => [article.id, article]));
     return [...quantityValues.entries()]
       .map(([articleId, quantity]) => ({
         articleId,
@@ -989,7 +1127,7 @@ function setupNewListPage() {
     articleContainer.innerHTML = "";
 
     const searchTerm = normalizeName(searchInput?.value ?? "").toLowerCase();
-    const articles = getArticles();
+    const articles = getCatalog();
     const visibleArticles = searchTerm
       ? articles.filter((article) => article.name.toLowerCase().includes(searchTerm))
       : articles;
@@ -1060,7 +1198,7 @@ function createEditForm(list, onSave) {
   });
 
   const savedItems = new Map(list.items.map((item) => [item.articleId, item]));
-  const editArticles = getArticles().map((article) => ({
+  const editArticles = getCatalog().map((article) => ({
     articleId: article.id,
     name: article.name,
     quantity: savedItems.get(article.id)?.quantity ?? "",
