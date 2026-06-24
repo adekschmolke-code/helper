@@ -1,4 +1,3 @@
-const ARTICLE_KEY = "helper_articles";
 const CATALOG_KEY = "helper_article_catalog";
 const DELETED_CATALOG_KEY = "helper_deleted_catalog_names";
 const CATALOG_VERSION_KEY = "helper_article_catalog_version";
@@ -17,7 +16,6 @@ const BEVERAGE_CATEGORIES = [
 const CATEGORY_CONFIG = {
   beverages: {
     label: "Getr\u00E4nke",
-    articleKey: ARTICLE_KEY,
     catalogKey: CATALOG_KEY,
     deletedCatalogKey: DELETED_CATALOG_KEY,
     catalogVersionKey: CATALOG_VERSION_KEY,
@@ -26,7 +24,6 @@ const CATEGORY_CONFIG = {
   },
   cigarettes: {
     label: "Zigaretten",
-    articleKey: `${STORAGE_PREFIX}cigarette_articles`,
     catalogKey: `${STORAGE_PREFIX}cigarette_article_catalog`,
     deletedCatalogKey: `${STORAGE_PREFIX}deleted_cigarette_catalog_names`,
     catalogVersionKey: `${STORAGE_PREFIX}cigarette_article_catalog_version`,
@@ -54,9 +51,7 @@ const text = {
   edit: "Bearbeiten",
   editDone: "Fertig",
   hide: "Ausblenden",
-  articleAdded: "Hinzugef\u00FCgt.",
   articleExists: "Schon vorhanden.",
-  articleRemoved: "Entfernt.",
   catalogArticleAdded: "Angelegt.",
   lightMode: "\u2600 Hellmodus",
   listAutoSaved: "Gespeichert.",
@@ -232,14 +227,9 @@ async function clearAppCache({ includeArticles }) {
     Object.keys(localStorage)
       .filter((key) => key.startsWith(STORAGE_PREFIX))
       .filter((key) => includeArticles || !Object.values(CATEGORY_CONFIG).some((config) =>
-        [config.articleKey, config.catalogKey, config.deletedCatalogKey].includes(key),
+        [config.catalogKey, config.deletedCatalogKey].includes(key),
       ))
       .forEach((key) => localStorage.removeItem(key));
-    if (includeArticles) {
-      Object.values(CATEGORY_CONFIG).forEach((config) => {
-        localStorage.setItem(config.articleKey, JSON.stringify([]));
-      });
-    }
   } catch {
     // Manche iOS-Privatmodi blockieren Speicherzugriff.
   }
@@ -549,30 +539,6 @@ function saveCatalog(catalog) {
   return writeStorage(getCategoryConfig().catalogKey, buildCatalogWithCustomArticles(catalog));
 }
 
-function getArticles() {
-  const { articleKey } = getCategoryConfig();
-  const articles = readStorage(articleKey, null);
-  if (Array.isArray(articles)) {
-    const catalogNames = new Set(getCatalog().map((article) => article.name.toLowerCase()));
-    const selectedArticles = uniqueArticlesByName(articles).filter((article) =>
-      catalogNames.has(article.name.toLowerCase()),
-    );
-    if (selectedArticles.length !== articles.length) {
-      saveArticles(selectedArticles);
-    }
-    return selectedArticles;
-  }
-
-  getCatalog();
-  const initialArticles = [];
-  writeStorage(articleKey, initialArticles);
-  return initialArticles;
-}
-
-function saveArticles(articles) {
-  return writeStorage(getCategoryConfig().articleKey, uniqueArticlesByName(Array.isArray(articles) ? articles : []));
-}
-
 function addArticleToCatalog(name, categoryId = "") {
   const cleanName = normalizeName(name);
   if (!cleanName) {
@@ -639,7 +605,6 @@ function updateArticleInCatalog(article, nextName, categoryId = "") {
     name: cleanName,
     ...createArticleMetadata(cleanName, categoryId || article.category),
   };
-  const selectedArticles = getArticles();
   const savedLists = getLists();
   const nextCatalog = catalog.map((entry) =>
     entry.id === article.id || entry.name.toLowerCase() === oldKey ? updatedArticle : entry,
@@ -652,14 +617,6 @@ function updateArticleInCatalog(article, nextName, categoryId = "") {
   if (!saveCatalog(nextCatalog)) {
     return { exists: false, stored: false };
   }
-
-  saveArticles(
-    selectedArticles.map((entry) =>
-      entry.id === article.id || entry.name.toLowerCase() === oldKey
-        ? { ...entry, ...updatedArticle }
-        : entry,
-    ),
-  );
 
   saveLists(
     savedLists.map((list) => ({
@@ -696,7 +653,6 @@ function deleteArticleFromCatalog(article) {
     return false;
   }
 
-  removeArticleFromSelection({ id: article.id, name: cleanName });
   return true;
 }
 
@@ -765,20 +721,6 @@ function normalizeQuantity(value) {
   }
 
   return String(Math.trunc(number));
-}
-
-function addArticleToSelection(article) {
-  const selectedArticles = getArticles();
-  if (!selectedArticles.some((entry) => entry.name.toLowerCase() === article.name.toLowerCase())) {
-    return saveArticles([...selectedArticles, article]);
-  }
-  return true;
-}
-
-function removeArticleFromSelection(article) {
-  return saveArticles(
-    getArticles().filter((entry) => entry.name.toLowerCase() !== article.name.toLowerCase()),
-  );
 }
 
 function createEmptyState(message) {
@@ -858,7 +800,6 @@ function setupArticlePage() {
 
   function render() {
     const catalog = getCatalog();
-    const selectedNames = new Set(getArticles().map((article) => article.name.toLowerCase()));
     const searchTerm = normalizeName(searchInput?.value ?? "").toLowerCase();
     const visibleCatalog = searchTerm
       ? catalog.filter((article) => article.name.toLowerCase().includes(searchTerm))
@@ -884,8 +825,7 @@ function setupArticlePage() {
       }
 
       const item = document.createElement("li");
-      const isSelected = selectedNames.has(article.name.toLowerCase());
-      item.className = `item-row${isSelected ? " is-selected" : ""}${editMode ? " is-editing" : ""}`;
+      item.className = `item-row${editMode ? " is-editing" : ""}`;
 
       const textGroup = document.createElement("span");
       textGroup.className = "item-text";
@@ -955,33 +895,7 @@ function setupArticlePage() {
         textGroup.append(createCategoryPill(articleCategory));
       }
 
-      const actionButton = document.createElement("button");
-      actionButton.className = `button compact ${isSelected ? "danger" : "secondary"}`;
-      actionButton.type = "button";
-      setIconButton(
-        actionButton,
-        isSelected ? "\u00D7" : "+",
-        isSelected ? t("delete") : t("addArticle"),
-      );
-      actionButton.addEventListener("click", () => {
-        let stored = false;
-        if (isSelected) {
-          stored = removeArticleFromSelection(article);
-          if (status) {
-            status.textContent = stored ? t("articleRemoved") : t("storageUnavailable");
-          }
-        } else {
-          stored = addArticleToSelection(article);
-          if (status) {
-            status.textContent = stored ? t("articleAdded") : t("storageUnavailable");
-          }
-        }
-        if (stored) {
-          render();
-        }
-      });
-
-      item.append(textGroup, actionButton);
+      item.append(textGroup);
       list.append(item);
     });
   }

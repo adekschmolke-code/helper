@@ -452,7 +452,7 @@ select:focus-visible {
 .item-row,
 .quantity-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   align-items: center;
   gap: 12px;
   border: 1px solid var(--border);
@@ -461,12 +461,6 @@ select:focus-visible {
   box-shadow: 0 8px 22px rgba(16, 24, 40, 0.04);
   padding: 12px 14px;
   font-weight: 700;
-}
-
-.item-row.is-selected {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  color: var(--primary-soft-text);
 }
 
 .item-row.is-editing {
@@ -907,7 +901,7 @@ select:focus-visible {
   }
 
   .item-row {
-    grid-template-columns: minmax(0, 1fr) 46px;
+    grid-template-columns: minmax(0, 1fr);
     padding: 11px 12px;
   }
 
